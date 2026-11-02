@@ -1,0 +1,52 @@
+spring:
+  application:
+    name: oficina
+  config:
+    import: optional:file:.env[.properties]
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/oficina}
+    username: ${DB_USER:oficina_app}
+    password: ${DB_PASSWORD}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: America/Sao_Paulo
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    user: ${FLYWAY_USER:${DB_USER:oficina_app}}
+    password: ${FLYWAY_PASSWORD:${DB_PASSWORD}}
+    baseline-on-migrate: true
+    baseline-version: 8
+  thymeleaf:
+    cache: false
+  web:
+    locale: pt_BR
+
+server:
+  port: 8080
+  servlet:
+    session:
+      timeout: 30m
+      cookie:
+        http-only: true
+        secure: ${SESSION_COOKIE_SECURE:false}
+        same-site: lax
+  error:
+    include-stacktrace: never
+    include-message: never
+    include-binding-errors: never
+    whitelabel:
+      enabled: false
+
+app:
+  admin:
+    email: ${ADMIN_EMAIL:}
+    password: ${ADMIN_PASSWORD:}
+  security:
+    max-login-attempts: 5
+    lock-minutes: 15

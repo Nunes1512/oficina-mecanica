@@ -1,0 +1,28 @@
+# Segredos: nunca vão para o Git
+.env
+.env.*
+!.env.example
+
+# Build
+target/
+*.class
+*.jar
+*.war
+*.log
+hs_err_pid*
+
+# IDEs
+.idea/
+*.iml
+.vscode/
+.classpath
+.project
+.settings/
+
+# Backups e dumps do banco
+*.dump
+backup*.sql
+
+# Sistema operacional
+.DS_Store
+Thumbs.db
