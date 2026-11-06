@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Início')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: nav}"></header>
+<main class="container">
+    <div class="card">
+        <h1>Login funcionando</h1>
+        <p>Você entrou como <strong th:text="${usuario.email}">email</strong>.</p>
+        <p>Perfil: <span class="badge" th:text="${usuario.perfil}">perfil</span></p>
+        <p class="muted">Esta é a página provisória da Parte 2. As telas de cada módulo chegam nas próximas partes.</p>
+    </div>
+</main>
+</body>
+</html>

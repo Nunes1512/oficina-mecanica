@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Entrar')}"></head>
+<body class="login-page">
+<main class="login-card">
+    <h1>Oficina Mecânica</h1>
+    <p class="muted">Entre com seu e-mail e senha.</p>
+
+    <div class="alert alert-erro" th:if="${param.erro != null}">E-mail ou senha inválidos, ou conta indisponível.</div>
+    <div class="alert alert-ok" th:if="${param.saiu != null}">Você saiu do sistema.</div>
+    <div class="alert alert-erro" th:if="${param.expirou != null}">Sua sessão expirou. Entre novamente.</div>
+
+    <form th:action="@{/login}" method="post">
+        <label for="username">E-mail</label>
+        <input id="username" name="username" type="email" required autofocus autocomplete="username">
+
+        <label for="password">Senha</label>
+        <input id="password" name="password" type="password" required autocomplete="current-password">
+
+        <button type="submit" class="btn btn-primary btn-block">Entrar</button>
+    </form>
+</main>
+</body>
+</html>

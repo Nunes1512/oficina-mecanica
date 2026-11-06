@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head th:fragment="head(titulo)">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title th:text="${titulo} + ' | Oficina'">Oficina</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+    <script th:src="@{/js/app.js}" defer></script>
+</head>
+<body>
+
+<header class="topbar" th:fragment="nav">
+    <a class="brand" th:href="@{/}">Oficina Mecânica</a>
+    <span class="spacer"></span>
+    <span class="usuario" sec:authorize="isAuthenticated()" sec:authentication="name">usuario</span>
+    <form th:action="@{/logout}" method="post" sec:authorize="isAuthenticated()">
+        <button type="submit" class="btn btn-sm">Sair</button>
+    </form>
+</header>
+
+<div th:fragment="flash" th:remove="tag">
+    <div class="alert alert-ok" th:if="${sucesso}" th:text="${sucesso}"></div>
+    <div class="alert alert-erro" th:if="${erro}" th:text="${erro}"></div>
+</div>
+
+</body>
+</html>
