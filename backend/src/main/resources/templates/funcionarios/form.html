@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Funcionário')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: nav}"></header>
+<main class="container">
+    <div class="card">
+        <h1 th:text="${id == null} ? 'Novo funcionário' : 'Editar funcionário'">Funcionário</h1>
+        <form th:action="${id == null} ? @{/funcionarios} : @{/funcionarios/{i}(i=${id})}" th:object="${form}" method="post">
+            <div class="alert alert-erro" th:each="e : ${#fields.globalErrors()}" th:text="${e}"></div>
+            <div class="form-grid">
+                <div>
+                    <label for="nome">Nome</label>
+                    <input type="text" th:field="*{nome}" maxlength="120">
+                    <div class="campo-erro" th:if="${#fields.hasErrors('nome')}" th:errors="*{nome}"></div>
+                </div>
+                <div>
+                    <label for="cpf">CPF</label>
+                    <input type="text" th:field="*{cpf}" maxlength="14" placeholder="000.000.000-00">
+                    <div class="campo-erro" th:if="${#fields.hasErrors('cpf')}" th:errors="*{cpf}"></div>
+                </div>
+                <div>
+                    <label for="telefone">Telefone</label>
+                    <input type="text" th:field="*{telefone}" maxlength="20">
+                    <div class="campo-erro" th:if="${#fields.hasErrors('telefone')}" th:errors="*{telefone}"></div>
+                </div>
+                <div>
+                    <label for="email">E-mail</label>
+                    <input type="email" th:field="*{email}" maxlength="120">
+                    <div class="campo-erro" th:if="${#fields.hasErrors('email')}" th:errors="*{email}"></div>
+                </div>
+                <div>
+                    <label for="cargo">Cargo</label>
+                    <input type="text" th:field="*{cargo}" maxlength="60">
+                    <div class="campo-erro" th:if="${#fields.hasErrors('cargo')}" th:errors="*{cargo}"></div>
+                </div>
+                <div>
+                    <label for="salario">Salário (R$)</label>
+                    <input type="number" step="0.01" min="0" th:field="*{salario}">
+                    <div class="campo-erro" th:if="${#fields.hasErrors('salario')}" th:errors="*{salario}"></div>
+                </div>
+                <div>
+                    <label for="status">Situação</label>
+                    <select th:field="*{status}">
+                        <option th:each="s : ${statusList}" th:value="${s}" th:text="${s.rotulo}">Ativo</option>
+                    </select>
+                    <div class="campo-erro" th:if="${#fields.hasErrors('status')}" th:errors="*{status}"></div>
+                </div>
+            </div>
+            <div class="acoes">
+                <button type="submit" class="btn btn-primary">Salvar</button>
+                <a class="btn" th:href="@{/funcionarios}">Cancelar</a>
+            </div>
+        </form>
+    </div>
+</main>
+</body>
+</html>

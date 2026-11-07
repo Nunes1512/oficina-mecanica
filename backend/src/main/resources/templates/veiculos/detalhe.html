@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head th:replace="~{fragments/layout :: head('Veículo')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: nav}"></header>
+<main class="container">
+    <div th:replace="~{fragments/layout :: flash}"></div>
+    <div class="linha">
+        <h1 th:text="${veiculo.placa + ' · ' + veiculo.marca + ' ' + veiculo.modelo}">Veículo</h1>
+        <div class="acoes">
+            <a class="btn" th:href="@{/veiculos}">Voltar</a>
+            <a class="btn btn-primary" th:href="@{/veiculos/{i}/editar(i=${veiculo.id})}"
+               sec:authorize="hasAnyRole('ADMIN_MASTER','GERENTE')">Editar</a>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="form-grid">
+            <div><strong>Status</strong><br><span th:replace="~{fragments/layout :: statusVeiculo(${veiculo})}"></span></div>
+            <div><strong>Cliente</strong><br><span th:text="${veiculo.cliente.nome}">Cliente</span></div>
+            <div><strong>Ano</strong><br><span th:text="${veiculo.ano}">2020</span></div>
+            <div><strong>Cor</strong><br><span th:text="${veiculo.cor}">Cor</span></div>
+            <div><strong>Quilometragem</strong><br><span th:text="${veiculo.quilometragem}">0</span></div>
+            <div><strong>Entrada</strong><br><span th:text="${#temporals.format(veiculo.dataEntrada, 'dd/MM/yyyy HH:mm')}">01/01/2026</span></div>
+            <div><strong>Previsão de entrega</strong><br><span th:text="${#temporals.format(veiculo.previsaoEntrega, 'dd/MM/yyyy')}">01/01/2026</span></div>
+            <div><strong>Entregue em</strong><br><span th:text="${#temporals.format(veiculo.dataEntrega, 'dd/MM/yyyy HH:mm')}">—</span></div>
+        </div>
+    </div>
+
+    <div class="card">
+        <h2>Linha do tempo</h2>
+        <ul class="timeline">
+            <li th:each="e : ${timeline}">
+                <strong th:text="${e.evento.rotulo}">Evento</strong>
+                <span class="muted" th:text="${#temporals.format(e.data, 'dd/MM/yyyy HH:mm')}">01/01/2026 10:00</span>
+                <div th:text="${e.descricao}">Descrição</div>
+            </li>
+        </ul>
+        <p class="muted" th:if="${#lists.isEmpty(timeline)}">Nenhum evento registrado.</p>
+    </div>
+</main>
+</body>
+</html>

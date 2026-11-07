@@ -1,14 +1,18 @@
 <!DOCTYPE html>
-<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
 <head th:replace="~{fragments/layout :: head('Início')}"></head>
 <body>
 <header th:replace="~{fragments/layout :: nav}"></header>
 <main class="container">
     <div class="card">
-        <h1>Login funcionando</h1>
-        <p>Você entrou como <strong th:text="${usuario.email}">email</strong>.</p>
-        <p>Perfil: <span class="badge" th:text="${usuario.perfil}">perfil</span></p>
-        <p class="muted">Esta é a página provisória da Parte 2. As telas de cada módulo chegam nas próximas partes.</p>
+        <h1>Bem-vindo</h1>
+        <p>Você entrou como <strong th:text="${usuario.email}">email</strong>
+            (perfil <span class="badge" th:text="${usuario.perfil}">perfil</span>).</p>
+    </div>
+    <div class="cards">
+        <a class="card" th:href="@{/veiculos}"><div class="valor">Veículos</div><div class="rotulo">Consultar e acompanhar</div></a>
+        <a class="card" th:href="@{/clientes}" sec:authorize="hasAnyRole('ADMIN_MASTER','GERENTE')"><div class="valor">Clientes</div><div class="rotulo">Cadastro de clientes</div></a>
+        <a class="card" th:href="@{/funcionarios}" sec:authorize="hasAnyRole('ADMIN_MASTER','GERENTE')"><div class="valor">Funcionários</div><div class="rotulo">Equipe da oficina</div></a>
     </div>
 </main>
 </body>

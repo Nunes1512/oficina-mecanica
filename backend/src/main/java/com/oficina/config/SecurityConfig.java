@@ -1,5 +1,8 @@
 package com.oficina.config;
 
+import com.oficina.security.LoginAttemptService;
+import com.oficina.security.LoginBloqueioFilter;
+import com.oficina.security.LoginFalhaHandler;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
@@ -8,12 +11,14 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter.ReferrerPolicy;
 import org.springframework.security.web.header.writers.StaticHeadersWriter;
 
 /**
  * Regras de segurança da aplicação:
  * - login por formulário com sessão (cookie HttpOnly, SameSite, id trocado após o login);
+ * - bloqueio temporário após várias senhas erradas, com aviso na tela de login;
  * - proteção CSRF ligada (padrão do Spring Security; os formulários Thymeleaf enviam o token);
  * - acesso por perfil nas rotas e, de novo, nos métodos (@PreAuthorize);
  * - cabeçalhos HTTP de segurança, incluindo uma política de conteúdo (CSP) sem scripts inline.
@@ -28,7 +33,8 @@ public class SecurityConfig {
             + "form-action 'self'; frame-ancestors 'none'";
 
     @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain filterChain(HttpSecurity http, LoginAttemptService tentativas) throws Exception {
+        http.addFilterBefore(new LoginBloqueioFilter(tentativas), UsernamePasswordAuthenticationFilter.class);
         http
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/css/**", "/js/**", "/img/**", "/favicon.ico", "/login", "/error").permitAll()
@@ -40,7 +46,7 @@ public class SecurityConfig {
                 .loginPage("/login")
                 .loginProcessingUrl("/login")
                 .defaultSuccessUrl("/", true)
-                .failureUrl("/login?erro")
+                .failureHandler(new LoginFalhaHandler(tentativas))
                 .permitAll())
             .logout(logout -> logout
                 .logoutUrl("/logout")

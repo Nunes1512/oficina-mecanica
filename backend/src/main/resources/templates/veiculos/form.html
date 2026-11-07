@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Veículo')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: nav}"></header>
+<main class="container">
+    <div class="card">
+        <h1 th:text="${id == null} ? 'Novo veículo' : 'Editar veículo'">Veículo</h1>
+        <form th:action="${id == null} ? @{/veiculos} : @{/veiculos/{i}(i=${id})}" th:object="${form}" method="post">
+            <div class="alert alert-erro" th:each="e : ${#fields.globalErrors()}" th:text="${e}"></div>
+            <div class="form-grid">
+                <div>
+                    <label for="placa">Placa</label>
+                    <input type="text" class="upper" th:field="*{placa}" maxlength="8" placeholder="ABC1D23">
+                    <div class="campo-erro" th:if="${#fields.hasErrors('placa')}" th:errors="*{placa}"></div>
+                </div>
+                <div>
+                    <label for="clienteId">Cliente (proprietário)</label>
+                    <select th:field="*{clienteId}">
+                        <option value="">Selecione...</option>
+                        <option th:each="c : ${clientes}" th:value="${c.id}" th:text="${c.nome}">Cliente</option>
+                    </select>
+                    <div class="campo-erro" th:if="${#fields.hasErrors('clienteId')}" th:errors="*{clienteId}"></div>
+                </div>
+                <div>
+                    <label for="marca">Marca</label>
+                    <input type="text" th:field="*{marca}" maxlength="50">
+                    <div class="campo-erro" th:if="${#fields.hasErrors('marca')}" th:errors="*{marca}"></div>
+                </div>
+                <div>
+                    <label for="modelo">Modelo</label>
+                    <input type="text" th:field="*{modelo}" maxlength="60">
+                    <div class="campo-erro" th:if="${#fields.hasErrors('modelo')}" th:errors="*{modelo}"></div>
+                </div>
+                <div>
+                    <label for="ano">Ano</label>
+                    <input type="number" min="1900" max="2100" th:field="*{ano}">
+                    <div class="campo-erro" th:if="${#fields.hasErrors('ano')}" th:errors="*{ano}"></div>
+                </div>
+                <div>
+                    <label for="cor">Cor</label>
+                    <input type="text" th:field="*{cor}" maxlength="30">
+                    <div class="campo-erro" th:if="${#fields.hasErrors('cor')}" th:errors="*{cor}"></div>
+                </div>
+                <div>
+                    <label for="quilometragem">Quilometragem</label>
+                    <input type="number" min="0" th:field="*{quilometragem}">
+                    <div class="campo-erro" th:if="${#fields.hasErrors('quilometragem')}" th:errors="*{quilometragem}"></div>
+                </div>
+                <div>
+                    <label for="previsaoEntrega">Previsão de entrega</label>
+                    <input type="date" th:field="*{previsaoEntrega}">
+                    <div class="campo-erro" th:if="${#fields.hasErrors('previsaoEntrega')}" th:errors="*{previsaoEntrega}"></div>
+                </div>
+                <div th:if="${id != null}">
+                    <label for="status">Status</label>
+                    <select th:field="*{status}">
+                        <option th:each="s : ${statusList}" th:value="${s}" th:text="${s.rotulo}">Status</option>
+                    </select>
+                </div>
+            </div>
+            <div class="acoes">
+                <button type="submit" class="btn btn-primary">Salvar</button>
+                <a class="btn" th:href="@{/veiculos}">Cancelar</a>
+            </div>
+        </form>
+    </div>
+</main>
+</body>
+</html>

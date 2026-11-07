@@ -11,6 +11,11 @@
 
 <header class="topbar" th:fragment="nav">
     <a class="brand" th:href="@{/}">Oficina Mecânica</a>
+    <nav class="menu" sec:authorize="isAuthenticated()">
+        <a th:href="@{/veiculos}">Veículos</a>
+        <a th:href="@{/clientes}" sec:authorize="hasAnyRole('ADMIN_MASTER','GERENTE')">Clientes</a>
+        <a th:href="@{/funcionarios}" sec:authorize="hasAnyRole('ADMIN_MASTER','GERENTE')">Funcionários</a>
+    </nav>
     <span class="spacer"></span>
     <span class="usuario" sec:authorize="isAuthenticated()" sec:authentication="name">usuario</span>
     <form th:action="@{/logout}" method="post" sec:authorize="isAuthenticated()">
@@ -22,6 +27,10 @@
     <div class="alert alert-ok" th:if="${sucesso}" th:text="${sucesso}"></div>
     <div class="alert alert-erro" th:if="${erro}" th:text="${erro}"></div>
 </div>
+
+<span th:fragment="statusVeiculo(v)" class="badge"
+      th:classappend="${v.status.name().startsWith('AGUARDANDO') ? 'badge-alerta' : (v.status.name() == 'CONCLUIDO' or v.status.name() == 'ENTREGUE' ? 'badge-ok' : '')}"
+      th:text="${v.status.rotulo}">status</span>
 
 </body>
 </html>

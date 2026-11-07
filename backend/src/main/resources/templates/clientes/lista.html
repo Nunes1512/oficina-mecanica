@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head th:replace="~{fragments/layout :: head('Clientes')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: nav}"></header>
+<main class="container">
+    <div th:replace="~{fragments/layout :: flash}"></div>
+    <div class="linha">
+        <h1>Clientes</h1>
+        <a class="btn btn-primary" th:href="@{/clientes/novo}">Novo cliente</a>
+    </div>
+    <form class="busca" th:action="@{/clientes}" method="get">
+        <input type="search" name="q" th:value="${q}" placeholder="Buscar por nome ou CPF">
+        <button class="btn" type="submit">Buscar</button>
+    </form>
+    <div class="tabela">
+        <table>
+            <thead>
+            <tr><th>Nome</th><th>CPF</th><th>Telefone</th><th>E-mail</th><th>Ações</th></tr>
+            </thead>
+            <tbody>
+            <tr th:each="c : ${clientes}">
+                <td th:text="${c.nome}">Nome</td>
+                <td th:text="${c.cpf}">000.000.000-00</td>
+                <td th:text="${c.telefone}">Telefone</td>
+                <td th:text="${c.email}">E-mail</td>
+                <td>
+                    <div class="acoes">
+                        <a class="btn btn-sm" th:href="@{/clientes/{i}/editar(i=${c.id})}">Editar</a>
+                        <form th:action="@{/clientes/{i}/excluir(i=${c.id})}" method="post"
+                              data-confirm="Excluir este cliente?">
+                            <button type="submit" class="btn btn-sm btn-perigo">Excluir</button>
+                        </form>
+                    </div>
+                </td>
+            </tr>
+            <tr th:if="${#lists.isEmpty(clientes)}"><td colspan="5" class="muted">Nenhum cliente encontrado.</td></tr>
+            </tbody>
+        </table>
+    </div>
+</main>
+</body>
+</html>

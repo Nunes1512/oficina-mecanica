@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head th:replace="~{fragments/layout :: head('Veículos')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: nav}"></header>
+<main class="container">
+    <div th:replace="~{fragments/layout :: flash}"></div>
+    <div class="linha">
+        <h1>Veículos</h1>
+        <a class="btn btn-primary" th:href="@{/veiculos/novo}" sec:authorize="hasAnyRole('ADMIN_MASTER','GERENTE')">Novo veículo</a>
+    </div>
+    <form class="busca" th:action="@{/veiculos}" method="get">
+        <input type="search" name="q" th:value="${q}" placeholder="Buscar por placa ou modelo">
+        <button class="btn" type="submit">Buscar</button>
+    </form>
+    <div class="tabela">
+        <table>
+            <thead>
+            <tr><th>Placa</th><th>Veículo</th><th>Cliente</th><th>Status</th><th>Previsão</th><th>Ações</th></tr>
+            </thead>
+            <tbody>
+            <tr th:each="v : ${veiculos}">
+                <td><a th:href="@{/veiculos/{i}(i=${v.id})}" th:text="${v.placa}">ABC1D23</a></td>
+                <td th:text="${v.marca + ' ' + v.modelo + ' ' + v.ano}">Marca Modelo 2020</td>
+                <td th:text="${v.cliente.nome}">Cliente</td>
+                <td><span th:replace="~{fragments/layout :: statusVeiculo(${v})}"></span></td>
+                <td th:text="${#temporals.format(v.previsaoEntrega, 'dd/MM/yyyy')}">01/01/2026</td>
+                <td>
+                    <div class="acoes">
+                        <a class="btn btn-sm" th:href="@{/veiculos/{i}(i=${v.id})}">Detalhes</a>
+                        <a class="btn btn-sm" th:href="@{/veiculos/{i}/editar(i=${v.id})}"
+                           sec:authorize="hasAnyRole('ADMIN_MASTER','GERENTE')">Editar</a>
+                        <form th:action="@{/veiculos/{i}/excluir(i=${v.id})}" method="post"
+                              data-confirm="Excluir este veículo?" sec:authorize="hasAnyRole('ADMIN_MASTER','GERENTE')">
+                            <button type="submit" class="btn btn-sm btn-perigo">Excluir</button>
+                        </form>
+                    </div>
+                </td>
+            </tr>
+            <tr th:if="${#lists.isEmpty(veiculos)}"><td colspan="6" class="muted">Nenhum veículo encontrado.</td></tr>
+            </tbody>
+        </table>
+    </div>
+</main>
+</body>
+</html>
