@@ -7,7 +7,7 @@
     <div class="card">
         <h1>Bem-vindo</h1>
         <p>Você entrou como <strong th:text="${usuario.email}">email</strong>
-            (perfil <span class="badge" th:text="${usuario.perfil}">perfil</span>).</p>
+            (perfil <span class="badge" th:text="${usuario.perfilRotulo}">perfil</span>).</p>
     </div>
     <div class="cards">
         <a class="card" th:href="@{/veiculos}"><div class="valor">Veículos</div><div class="rotulo">Consultar e acompanhar</div></a>

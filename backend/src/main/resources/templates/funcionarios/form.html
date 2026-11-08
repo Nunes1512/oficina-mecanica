@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
 <head th:replace="~{fragments/layout :: head('Funcionário')}"></head>
 <body>
 <header th:replace="~{fragments/layout :: nav}"></header>
@@ -34,7 +34,7 @@
                     <input type="text" th:field="*{cargo}" maxlength="60">
                     <div class="campo-erro" th:if="${#fields.hasErrors('cargo')}" th:errors="*{cargo}"></div>
                 </div>
-                <div>
+                <div sec:authorize="hasRole('ADMIN_MASTER')">
                     <label for="salario">Salário (R$)</label>
                     <input type="number" step="0.01" min="0" th:field="*{salario}">
                     <div class="campo-erro" th:if="${#fields.hasErrors('salario')}" th:errors="*{salario}"></div>

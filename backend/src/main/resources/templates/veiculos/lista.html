@@ -9,14 +9,20 @@
         <h1>Veículos</h1>
         <a class="btn btn-primary" th:href="@{/veiculos/novo}" sec:authorize="hasAnyRole('ADMIN_MASTER','GERENTE')">Novo veículo</a>
     </div>
+    <div class="filtros">
+        <a class="btn btn-sm" th:classappend="${!todos} ? 'btn-primary'" th:href="@{/veiculos}">Na oficina (fila por chegada)</a>
+        <a class="btn btn-sm" th:classappend="${todos} ? 'btn-primary'" th:href="@{/veiculos(todos=true)}">Todos, com entregues</a>
+    </div>
     <form class="busca" th:action="@{/veiculos}" method="get">
         <input type="search" name="q" th:value="${q}" placeholder="Buscar por placa ou modelo">
+        <input type="hidden" name="todos" th:value="${todos}">
         <button class="btn" type="submit">Buscar</button>
     </form>
+    <p class="muted">Os veículos há mais tempo na oficina aparecem primeiro.</p>
     <div class="tabela">
         <table>
             <thead>
-            <tr><th>Placa</th><th>Veículo</th><th>Cliente</th><th>Status</th><th>Previsão</th><th>Ações</th></tr>
+            <tr><th>Placa</th><th>Veículo</th><th>Cliente</th><th>Status</th><th>Chegada</th><th>Dias</th><th>Previsão</th><th>Ações</th></tr>
             </thead>
             <tbody>
             <tr th:each="v : ${veiculos}">
@@ -24,6 +30,8 @@
                 <td th:text="${v.marca + ' ' + v.modelo + ' ' + v.ano}">Marca Modelo 2020</td>
                 <td th:text="${v.cliente.nome}">Cliente</td>
                 <td><span th:replace="~{fragments/layout :: statusVeiculo(${v})}"></span></td>
+                <td th:text="${#temporals.format(v.dataEntrada, 'dd/MM/yyyy HH:mm')}">01/01/2026 08:00</td>
+                <td th:text="${v.diasNaOficina}">0</td>
                 <td th:text="${#temporals.format(v.previsaoEntrega, 'dd/MM/yyyy')}">01/01/2026</td>
                 <td>
                     <div class="acoes">
@@ -37,7 +45,7 @@
                     </div>
                 </td>
             </tr>
-            <tr th:if="${#lists.isEmpty(veiculos)}"><td colspan="6" class="muted">Nenhum veículo encontrado.</td></tr>
+            <tr th:if="${#lists.isEmpty(veiculos)}"><td colspan="8" class="muted">Nenhum veículo encontrado.</td></tr>
             </tbody>
         </table>
     </div>

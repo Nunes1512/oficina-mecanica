@@ -18,6 +18,7 @@
     </nav>
     <span class="spacer"></span>
     <span class="usuario" sec:authorize="isAuthenticated()" sec:authentication="name">usuario</span>
+    <span class="badge" sec:authorize="isAuthenticated()" sec:authentication="principal.perfilRotulo">Perfil</span>
     <form th:action="@{/logout}" method="post" sec:authorize="isAuthenticated()">
         <button type="submit" class="btn btn-sm">Sair</button>
     </form>

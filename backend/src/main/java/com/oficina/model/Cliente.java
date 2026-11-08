@@ -6,6 +6,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import java.time.LocalDateTime;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -36,4 +37,8 @@ public class Cliente {
 
     @Column(length = 255)
     private String endereco;
+
+    /** Data do cadastro, preenchida pelo banco (DEFAULT now()). Serve para contar clientes novos por mês. */
+    @Column(name = "criado_em", insertable = false, updatable = false)
+    private LocalDateTime dataCadastro;
 }

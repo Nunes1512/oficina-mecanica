@@ -36,7 +36,7 @@ public class FuncionarioForm {
     @Size(max = 60, message = "Use no máximo 60 caracteres.")
     private String cargo;
 
-    @NotNull(message = "Informe o salário.")
+    /** Só o administrador vê e altera. Para os outros perfis o campo nem aparece e o serviço o ignora. */
     @DecimalMin(value = "0.00", message = "O salário não pode ser negativo.")
     @Digits(integer = 8, fraction = 2, message = "Use até 8 dígitos e 2 casas decimais.")
     private BigDecimal salario;

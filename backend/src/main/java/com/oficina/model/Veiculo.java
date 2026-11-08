@@ -11,6 +11,7 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -66,4 +67,13 @@ public class Veiculo {
     @ManyToOne(optional = false)
     @JoinColumn(name = "cliente_id", nullable = false)
     private Cliente cliente;
+
+    /** Dias desde a chegada até a entrega (ou até hoje, se ainda está na oficina). Não é coluna do banco. */
+    public long getDiasNaOficina() {
+        if (dataEntrada == null) {
+            return 0;
+        }
+        LocalDateTime fim = dataEntrega != null ? dataEntrega : LocalDateTime.now();
+        return Math.max(0, ChronoUnit.DAYS.between(dataEntrada, fim));
+    }
 }

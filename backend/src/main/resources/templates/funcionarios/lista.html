@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
 <head th:replace="~{fragments/layout :: head('Funcionários')}"></head>
 <body>
 <header th:replace="~{fragments/layout :: nav}"></header>
@@ -12,14 +12,14 @@
     <div class="tabela">
         <table>
             <thead>
-            <tr><th>Nome</th><th>Cargo</th><th>Telefone</th><th>Salário</th><th>Situação</th><th>Login</th><th>Ações</th></tr>
+            <tr><th>Nome</th><th>Cargo</th><th>Telefone</th><th sec:authorize="hasRole('ADMIN_MASTER')">Salário</th><th>Situação</th><th>Login</th><th>Ações</th></tr>
             </thead>
             <tbody>
             <tr th:each="f : ${funcionarios}">
                 <td th:text="${f.nome}">Nome</td>
                 <td th:text="${f.cargo}">Cargo</td>
                 <td th:text="${f.telefone}">Telefone</td>
-                <td th:text="${'R$ ' + #numbers.formatDecimal(f.salario, 1, 'POINT', 2, 'COMMA')}">R$ 0,00</td>
+                <td sec:authorize="hasRole('ADMIN_MASTER')" th:text="${'R$ ' + #numbers.formatDecimal(f.salario, 1, 'POINT', 2, 'COMMA')}">R$ 0,00</td>
                 <td><span class="badge" th:classappend="${f.status.name() == 'ATIVO'} ? 'badge-ok' : 'badge-erro'"
                           th:text="${f.status.rotulo}">Ativo</span></td>
                 <td th:text="${f.usuario != null} ? ${f.usuario.email} : '—'">—</td>

@@ -15,15 +15,38 @@
     </div>
 
     <div class="card">
+        <h2>Etapa do reparo</h2>
+        <ol class="etapas">
+            <li th:each="s : ${etapas}"
+                th:classappend="${s.ordinal() < veiculo.status.ordinal()} ? 'feita' : (${s == veiculo.status} ? 'atual')"
+                th:text="${s.rotulo}">Etapa</li>
+        </ol>
+        <div class="acoes">
+            <form th:if="${anterior != null}" th:action="@{/veiculos/{i}/status(i=${veiculo.id})}" method="post"
+                  data-confirm="Voltar o status do veículo uma etapa?">
+                <input type="hidden" name="status" th:value="${anterior}">
+                <button type="submit" class="btn">Voltar para: <span th:text="${anterior.rotulo}">Etapa</span></button>
+            </form>
+            <form th:if="${proximo != null}" th:action="@{/veiculos/{i}/status(i=${veiculo.id})}" method="post">
+                <input type="hidden" name="status" th:value="${proximo}">
+                <button type="submit" class="btn btn-primary">Avançar para: <span th:text="${proximo.rotulo}">Etapa</span></button>
+            </form>
+        </div>
+        <p class="muted" th:if="${proximo == null and veiculo.status.name() == 'CONCLUIDO'}">
+            Serviço concluído. Somente o gerente registra a entrega do veículo.
+        </p>
+    </div>
+
+    <div class="card">
         <div class="form-grid">
-            <div><strong>Status</strong><br><span th:replace="~{fragments/layout :: statusVeiculo(${veiculo})}"></span></div>
             <div><strong>Cliente</strong><br><span th:text="${veiculo.cliente.nome}">Cliente</span></div>
+            <div><strong>Chegada na oficina</strong><br><span th:text="${#temporals.format(veiculo.dataEntrada, 'dd/MM/yyyy HH:mm')}">01/01/2026</span></div>
+            <div><strong>Dias na oficina</strong><br><span th:text="${veiculo.diasNaOficina}">0</span></div>
+            <div><strong>Previsão de entrega</strong><br><span th:text="${#temporals.format(veiculo.previsaoEntrega, 'dd/MM/yyyy')}">01/01/2026</span></div>
+            <div><strong>Entregue em</strong><br><span th:text="${#temporals.format(veiculo.dataEntrega, 'dd/MM/yyyy HH:mm')}">—</span></div>
             <div><strong>Ano</strong><br><span th:text="${veiculo.ano}">2020</span></div>
             <div><strong>Cor</strong><br><span th:text="${veiculo.cor}">Cor</span></div>
             <div><strong>Quilometragem</strong><br><span th:text="${veiculo.quilometragem}">0</span></div>
-            <div><strong>Entrada</strong><br><span th:text="${#temporals.format(veiculo.dataEntrada, 'dd/MM/yyyy HH:mm')}">01/01/2026</span></div>
-            <div><strong>Previsão de entrega</strong><br><span th:text="${#temporals.format(veiculo.previsaoEntrega, 'dd/MM/yyyy')}">01/01/2026</span></div>
-            <div><strong>Entregue em</strong><br><span th:text="${#temporals.format(veiculo.dataEntrega, 'dd/MM/yyyy HH:mm')}">—</span></div>
         </div>
     </div>
 

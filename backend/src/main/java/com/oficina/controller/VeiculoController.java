@@ -3,10 +3,13 @@ package com.oficina.controller;
 import com.oficina.exception.NegocioException;
 import com.oficina.form.VeiculoForm;
 import com.oficina.model.StatusVeiculo;
+import com.oficina.model.Veiculo;
 import com.oficina.security.UsuarioPrincipal;
 import com.oficina.service.ClienteService;
 import com.oficina.service.VeiculoService;
 import jakarta.validation.Valid;
+import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -33,23 +36,44 @@ public class VeiculoController {
     private final ClienteService clienteService;
 
     @GetMapping
-    public String listar(@RequestParam(required = false) String q, Model model) {
-        model.addAttribute("veiculos", service.listar(q));
+    public String listar(@RequestParam(required = false) String q,
+                         @RequestParam(defaultValue = "false") boolean todos, Model model) {
+        model.addAttribute("veiculos", service.listar(q, todos));
         model.addAttribute("q", q);
+        model.addAttribute("todos", todos);
         return "veiculos/lista";
     }
 
     @GetMapping("/{id}")
-    public String detalhe(@PathVariable Long id, Model model) {
-        model.addAttribute("veiculo", service.buscar(id));
+    public String detalhe(@PathVariable Long id, @AuthenticationPrincipal UsuarioPrincipal usuario, Model model) {
+        Veiculo veiculo = service.buscar(id);
+        model.addAttribute("veiculo", veiculo);
         model.addAttribute("timeline", service.timeline(id));
+        model.addAttribute("etapas", StatusVeiculo.values());
+        model.addAttribute("proximo", service.proximoDisponivel(veiculo, usuario));
+        model.addAttribute("anterior", service.anteriorDisponivel(veiculo, usuario));
         return "veiculos/detalhe";
+    }
+
+    /** Qualquer usuário logado pode pedir; as regras de ordem e de perfil são conferidas no serviço. */
+    @PostMapping("/{id}/status")
+    public String alterarStatus(@PathVariable Long id, @RequestParam StatusVeiculo status,
+                                @AuthenticationPrincipal UsuarioPrincipal usuario, RedirectAttributes redirect) {
+        try {
+            service.alterarStatus(id, status, usuario);
+            redirect.addFlashAttribute("sucesso", "Status alterado para \"" + status.getRotulo() + "\".");
+        } catch (NegocioException erro) {
+            redirect.addFlashAttribute("erro", erro.getMessage());
+        }
+        return "redirect:/veiculos/" + id;
     }
 
     @GetMapping("/novo")
     @PreAuthorize(GERENTE_OU_ADMIN)
     public String novo(Model model) {
-        model.addAttribute("form", new VeiculoForm());
+        VeiculoForm form = new VeiculoForm();
+        form.setDataEntrada(LocalDateTime.now().truncatedTo(ChronoUnit.MINUTES));
+        model.addAttribute("form", form);
         preparar(model);
         return "veiculos/form";
     }
@@ -116,6 +140,5 @@ public class VeiculoController {
     /** Dados dos campos de seleção do formulário. */
     private void preparar(Model model) {
         model.addAttribute("clientes", clienteService.listar(null));
-        model.addAttribute("statusList", StatusVeiculo.values());
     }
 }

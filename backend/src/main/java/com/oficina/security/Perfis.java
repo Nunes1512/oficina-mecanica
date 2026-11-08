@@ -9,4 +9,18 @@ public final class Perfis {
 
     private Perfis() {
     }
+
+    /** Nome para mostrar na tela. O valor ROLE_* continua no banco porque o Spring Security exige o prefixo. */
+    public static String rotulo(String perfil) {
+        if (ADMIN_MASTER.equals(perfil)) {
+            return "Administrador Master";
+        }
+        if (GERENTE.equals(perfil)) {
+            return "Gerente";
+        }
+        if (FUNCIONARIO.equals(perfil)) {
+            return "Funcionário";
+        }
+        return perfil;
+    }
 }

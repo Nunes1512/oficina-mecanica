@@ -14,8 +14,9 @@ import com.oficina.repository.VeiculoRepository;
 import com.oficina.security.UsuarioPrincipal;
 import com.oficina.util.Textos;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -23,8 +24,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Consultar é liberado a qualquer usuário logado (o funcionário precisa ver os veículos);
- * cadastrar, alterar e excluir é só do gerente e do administrador.
+ * Consultar e AVANÇAR o status é liberado a qualquer usuário logado (o funcionário é quem trabalha no veículo);
+ * cadastrar, alterar, excluir, voltar status e registrar a entrega é só do gerente e do administrador.
  * A timeline é escrita pelos triggers do banco: aqui só lemos.
  */
 @Service
@@ -40,13 +41,25 @@ public class VeiculoService {
     private final OrdemServicoRepository ordens;
     private final AuditoriaService auditoria;
 
+    /**
+     * Fila de atendimento: quem está há mais tempo na oficina vem primeiro. Os veículos já entregues
+     * ficam por último (mais recentes antes) e só aparecem quando pedidos ou quando há busca.
+     */
     @Transactional(readOnly = true)
-    public List<Veiculo> listar(String busca) {
+    public List<Veiculo> listar(String busca, boolean incluirEntregues) {
         String termo = Textos.limpar(busca);
-        if (termo == null) {
-            return veiculos.findAllByOrderByDataEntradaDesc();
+        List<Veiculo> base = termo == null
+                ? veiculos.findAllByOrderByDataEntradaDesc()
+                : veiculos.findByPlacaContainingIgnoreCaseOrModeloContainingIgnoreCaseOrderByDataEntradaDesc(termo, termo);
+
+        List<Veiculo> fila = new ArrayList<>(base.stream()
+                .filter(v -> v.getStatus() != StatusVeiculo.ENTREGUE)
+                .sorted(Comparator.comparing(Veiculo::getDataEntrada))
+                .toList());
+        if (incluirEntregues || termo != null) {
+            base.stream().filter(v -> v.getStatus() == StatusVeiculo.ENTREGUE).forEach(fila::add);
         }
-        return veiculos.findByPlacaContainingIgnoreCaseOrModeloContainingIgnoreCaseOrderByDataEntradaDesc(termo, termo);
+        return fila;
     }
 
     @Transactional(readOnly = true)
@@ -68,7 +81,6 @@ public class VeiculoService {
         }
         Veiculo veiculo = new Veiculo();
         aplicar(veiculo, form, placa);
-        veiculo.setDataEntrada(LocalDateTime.now());
         veiculo.setStatus(StatusVeiculo.AGUARDANDO_ANALISE);
         return veiculos.save(veiculo);
     }
@@ -81,10 +93,28 @@ public class VeiculoService {
             throw new NegocioException("Já existe outro veículo com esta placa.");
         }
         aplicar(veiculo, form, placa);
-        if (form.getStatus() != null) {
-            veiculo.setStatus(form.getStatus());
-        }
         return veiculo;
+    }
+
+    /** Muda o status seguindo a ordem do fluxo e as permissões do perfil (regras em FluxoStatusVeiculo). */
+    public Veiculo alterarStatus(Long id, StatusVeiculo novo, UsuarioPrincipal ator) {
+        Veiculo veiculo = buscar(id);
+        StatusVeiculo atual = veiculo.getStatus();
+        FluxoStatusVeiculo.validar(atual, novo, ator.isGerenteOuAdmin());
+        veiculo.setStatus(novo);
+        auditoria.registrar(ator, "STATUS", "veiculo", id,
+                veiculo.getPlaca() + ": " + atual.getRotulo() + " para " + novo.getRotulo());
+        return veiculo;
+    }
+
+    @Transactional(readOnly = true)
+    public StatusVeiculo proximoDisponivel(Veiculo veiculo, UsuarioPrincipal ator) {
+        return FluxoStatusVeiculo.proximoPara(veiculo.getStatus(), ator.isGerenteOuAdmin());
+    }
+
+    @Transactional(readOnly = true)
+    public StatusVeiculo anteriorDisponivel(Veiculo veiculo, UsuarioPrincipal ator) {
+        return FluxoStatusVeiculo.anteriorPara(veiculo.getStatus(), ator.isGerenteOuAdmin());
     }
 
     @PreAuthorize(GERENTE_OU_ADMIN)
@@ -98,6 +128,13 @@ public class VeiculoService {
     }
 
     private void aplicar(Veiculo veiculo, VeiculoForm form, String placa) {
+        if (form.getDataEntrada() == null) {
+            throw new NegocioException("Informe a data de chegada.");
+        }
+        LocalDate previsao = form.getPrevisaoEntrega();
+        if (previsao != null && previsao.isBefore(form.getDataEntrada().toLocalDate())) {
+            throw new NegocioException("A previsão de entrega não pode ser anterior à data de chegada.");
+        }
         Cliente cliente = clientes.findById(form.getClienteId())
                 .orElseThrow(() -> new NegocioException("Cliente não encontrado."));
         veiculo.setMarca(form.getMarca().trim());
@@ -107,7 +144,7 @@ public class VeiculoService {
         veiculo.setPlaca(placa);
         veiculo.setQuilometragem(form.getQuilometragem());
         veiculo.setCliente(cliente);
-        LocalDate previsao = form.getPrevisaoEntrega();
+        veiculo.setDataEntrada(form.getDataEntrada());
         veiculo.setPrevisaoEntrega(previsao == null ? null : previsao.atTime(LocalTime.of(23, 59)));
     }
 }

@@ -34,6 +34,11 @@ public class ClienteService {
     }
 
     @Transactional(readOnly = true)
+    public List<ClienteRepository.ClientesPorMes> clientesPorMes() {
+        return clientes.clientesPorMes();
+    }
+
+    @Transactional(readOnly = true)
     public Cliente buscar(Long id) {
         return clientes.findById(id)
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Cliente não encontrado."));

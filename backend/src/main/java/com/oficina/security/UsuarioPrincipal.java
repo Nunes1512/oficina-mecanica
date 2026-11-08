@@ -43,6 +43,11 @@ public class UsuarioPrincipal implements UserDetails, CredentialsContainer {
         return perfil;
     }
 
+    /** Nome do perfil para mostrar na tela (Gerente, Funcionário...). */
+    public String getPerfilRotulo() {
+        return Perfis.rotulo(perfil);
+    }
+
     public boolean isAdmin() {
         return Perfis.ADMIN_MASTER.equals(perfil);
     }

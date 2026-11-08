@@ -31,6 +31,7 @@ public class ClienteController {
     public String listar(@RequestParam(required = false) String q, Model model) {
         model.addAttribute("clientes", service.listar(q));
         model.addAttribute("q", q);
+        model.addAttribute("porMes", service.clientesPorMes());
         return "clientes/lista";
     }
 
