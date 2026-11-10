@@ -2,14 +2,11 @@ package com.oficina.form;
 
 import com.oficina.model.Funcionario;
 import com.oficina.model.StatusFuncionario;
-import jakarta.validation.constraints.DecimalMin;
-import jakarta.validation.constraints.Digits;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
-import java.math.BigDecimal;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -36,13 +33,20 @@ public class FuncionarioForm {
     @Size(max = 60, message = "Use no máximo 60 caracteres.")
     private String cargo;
 
-    /** Só o administrador vê e altera. Para os outros perfis o campo nem aparece e o serviço o ignora. */
-    @DecimalMin(value = "0.00", message = "O salário não pode ser negativo.")
-    @Digits(integer = 8, fraction = 2, message = "Use até 8 dígitos e 2 casas decimais.")
-    private BigDecimal salario;
-
     @NotNull(message = "Informe a situação.")
     private StatusFuncionario status = StatusFuncionario.ATIVO;
+
+    // Pedido explícito de login. Também inferido no serviço pelos campos preenchidos.
+    private boolean criarUsuario;
+
+    @Email(message = "E-mail de login inválido.")
+    @Size(max = 120, message = "Use no máximo 120 caracteres.")
+    private String emailUsuario;
+
+    @Size(max = 64, message = "A senha deve ter no máximo 64 caracteres.")
+    private String senhaInicial;
+
+    private String perfilUsuario;
 
     public static FuncionarioForm de(Funcionario funcionario) {
         FuncionarioForm form = new FuncionarioForm();
@@ -51,7 +55,6 @@ public class FuncionarioForm {
         form.setTelefone(funcionario.getTelefone());
         form.setEmail(funcionario.getEmail());
         form.setCargo(funcionario.getCargo());
-        form.setSalario(funcionario.getSalario());
         form.setStatus(funcionario.getStatus());
         return form;
     }

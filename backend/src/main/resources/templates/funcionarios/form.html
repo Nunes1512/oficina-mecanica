@@ -34,11 +34,6 @@
                     <input type="text" th:field="*{cargo}" maxlength="60">
                     <div class="campo-erro" th:if="${#fields.hasErrors('cargo')}" th:errors="*{cargo}"></div>
                 </div>
-                <div sec:authorize="hasRole('ADMIN_MASTER')">
-                    <label for="salario">Salário (R$)</label>
-                    <input type="number" step="0.01" min="0" th:field="*{salario}">
-                    <div class="campo-erro" th:if="${#fields.hasErrors('salario')}" th:errors="*{salario}"></div>
-                </div>
                 <div>
                     <label for="status">Situação</label>
                     <select th:field="*{status}">
@@ -47,6 +42,38 @@
                     <div class="campo-erro" th:if="${#fields.hasErrors('status')}" th:errors="*{status}"></div>
                 </div>
             </div>
+            <!-- Admin Master pode criar login ao cadastrar ou editar funcionário sem conta. -->
+            <section th:if="${id == null or !temUsuario}" sec:authorize="hasRole('ADMIN_MASTER')">
+                <h2>Acesso ao sistema (opcional)</h2>
+                <p>Preencha e-mail, senha e perfil para criar o login ao salvar. A opção abaixo também pode ser marcada, mas não é obrigatória se os dados de acesso forem preenchidos.</p>
+                <div>
+                    <label>
+                        <input type="checkbox" th:field="*{criarUsuario}">
+                        Criar usuário para este funcionário
+                    </label>
+                </div>
+                <div class="form-grid">
+                    <div>
+                        <label for="emailUsuario">E-mail de login</label>
+                        <input type="email" th:field="*{emailUsuario}" maxlength="120" autocomplete="off">
+                        <div class="campo-erro" th:if="${#fields.hasErrors('emailUsuario')}" th:errors="*{emailUsuario}"></div>
+                    </div>
+                    <div>
+                        <label for="senhaInicial">Senha inicial</label>
+                        <input type="password" th:field="*{senhaInicial}" maxlength="64" autocomplete="new-password">
+                        <div class="campo-erro" th:if="${#fields.hasErrors('senhaInicial')}" th:errors="*{senhaInicial}"></div>
+                    </div>
+                    <div>
+                        <label for="perfilUsuario">Perfil de acesso</label>
+                        <select th:field="*{perfilUsuario}">
+                            <option value="">Selecione</option>
+                            <option th:each="p : ${perfisUsuario}" th:value="${p}"
+                                    th:text="${p == 'ROLE_GERENTE' ? 'Gerente' : 'Funcionário'}">Funcionário</option>
+                        </select>
+                    </div>
+                </div>
+                <p>Senha forte: 8 a 64 caracteres, com maiúscula, minúscula, número e símbolo.</p>
+            </section>
             <div class="acoes">
                 <button type="submit" class="btn btn-primary">Salvar</button>
                 <a class="btn" th:href="@{/funcionarios}">Cancelar</a>

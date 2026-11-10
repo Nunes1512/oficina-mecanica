@@ -3,6 +3,7 @@ package com.oficina.controller;
 import com.oficina.exception.NegocioException;
 import com.oficina.form.FuncionarioForm;
 import com.oficina.model.StatusFuncionario;
+import com.oficina.security.Perfis;
 import com.oficina.security.UsuarioPrincipal;
 import com.oficina.service.FuncionarioService;
 import jakarta.validation.Valid;
@@ -36,6 +37,7 @@ public class FuncionarioController {
     @GetMapping("/novo")
     public String novo(Model model) {
         model.addAttribute("form", new FuncionarioForm());
+        model.addAttribute("temUsuario", false);
         preparar(model);
         return "funcionarios/form";
     }
@@ -48,18 +50,22 @@ public class FuncionarioController {
             return "funcionarios/form";
         }
         try {
-            service.criar(form, usuario);
+            var criado = service.criar(form, usuario);
+            redirect.addFlashAttribute("sucesso", criado.getUsuario() == null
+                    ? "Funcionário cadastrado SEM login de acesso."
+                    : "Funcionário e login criados com sucesso: " + criado.getUsuario().getEmail());
         } catch (NegocioException erro) {
             resultado.reject("negocio", erro.getMessage());
             return "funcionarios/form";
         }
-        redirect.addFlashAttribute("sucesso", "Funcionário cadastrado com sucesso.");
         return "redirect:/funcionarios";
     }
 
     @GetMapping("/{id}/editar")
     public String editar(@PathVariable Long id, Model model) {
-        model.addAttribute("form", FuncionarioForm.de(service.buscar(id)));
+        var funcionario = service.buscar(id);
+        model.addAttribute("form", FuncionarioForm.de(funcionario));
+        model.addAttribute("temUsuario", funcionario.getUsuario() != null);
         model.addAttribute("id", id);
         preparar(model);
         return "funcionarios/form";
@@ -70,21 +76,25 @@ public class FuncionarioController {
                             BindingResult resultado, @AuthenticationPrincipal UsuarioPrincipal usuario,
                             Model model, RedirectAttributes redirect) {
         model.addAttribute("id", id);
+        model.addAttribute("temUsuario", service.buscar(id).getUsuario() != null);
         preparar(model);
         if (resultado.hasErrors()) {
             return "funcionarios/form";
         }
         try {
-            service.atualizar(id, form, usuario);
+            var atualizado = service.atualizar(id, form, usuario);
+            redirect.addFlashAttribute("sucesso", atualizado.getUsuario() == null
+                    ? "Funcionário atualizado SEM login de acesso."
+                    : "Funcionário atualizado. Login vinculado: " + atualizado.getUsuario().getEmail());
         } catch (NegocioException erro) {
             resultado.reject("negocio", erro.getMessage());
             return "funcionarios/form";
         }
-        redirect.addFlashAttribute("sucesso", "Funcionário atualizado com sucesso.");
         return "redirect:/funcionarios";
     }
 
     private void preparar(Model model) {
         model.addAttribute("statusList", StatusFuncionario.values());
+        model.addAttribute("perfisUsuario", new String[] {Perfis.FUNCIONARIO, Perfis.GERENTE});
     }
 }

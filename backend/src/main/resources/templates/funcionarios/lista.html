@@ -12,20 +12,19 @@
     <div class="tabela">
         <table>
             <thead>
-            <tr><th>Nome</th><th>Cargo</th><th>Telefone</th><th sec:authorize="hasRole('ADMIN_MASTER')">Salário</th><th>Situação</th><th>Login</th><th>Ações</th></tr>
+            <tr><th>Nome</th><th>Cargo</th><th>Telefone</th><th>Situação</th><th>Login</th><th>Ações</th></tr>
             </thead>
             <tbody>
             <tr th:each="f : ${funcionarios}">
                 <td th:text="${f.nome}">Nome</td>
                 <td th:text="${f.cargo}">Cargo</td>
                 <td th:text="${f.telefone}">Telefone</td>
-                <td sec:authorize="hasRole('ADMIN_MASTER')" th:text="${'R$ ' + #numbers.formatDecimal(f.salario, 1, 'POINT', 2, 'COMMA')}">R$ 0,00</td>
                 <td><span class="badge" th:classappend="${f.status.name() == 'ATIVO'} ? 'badge-ok' : 'badge-erro'"
                           th:text="${f.status.rotulo}">Ativo</span></td>
                 <td th:text="${f.usuario != null} ? ${f.usuario.email} : '—'">—</td>
                 <td><a class="btn btn-sm" th:href="@{/funcionarios/{i}/editar(i=${f.id})}">Editar</a></td>
             </tr>
-            <tr th:if="${#lists.isEmpty(funcionarios)}"><td colspan="7" class="muted">Nenhum funcionário cadastrado.</td></tr>
+            <tr th:if="${#lists.isEmpty(funcionarios)}"><td colspan="6" class="muted">Nenhum funcionário cadastrado.</td></tr>
             </tbody>
         </table>
     </div>
