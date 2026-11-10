@@ -24,13 +24,14 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
-/** Consultar é liberado a todo usuário logado. Cadastrar, alterar e excluir é só do gerente e do admin. */
 @Controller
 @RequestMapping("/veiculos")
 @RequiredArgsConstructor
 public class VeiculoController {
 
     private static final String GERENTE_OU_ADMIN = "hasAnyRole('ADMIN_MASTER','GERENTE')";
+    private static final String RECEPCAO_OU_GESTAO =
+            "hasAnyRole('ADMIN_MASTER','GERENTE','ASSISTENTE_ADMINISTRATIVO')";
 
     private final VeiculoService service;
     private final ClienteService clienteService;
@@ -55,8 +56,8 @@ public class VeiculoController {
         return "veiculos/detalhe";
     }
 
-    /** Qualquer usuário logado pode pedir; as regras de ordem e de perfil são conferidas no serviço. */
     @PostMapping("/{id}/status")
+    @PreAuthorize(GERENTE_OU_ADMIN)
     public String alterarStatus(@PathVariable Long id, @RequestParam StatusVeiculo status,
                                 @AuthenticationPrincipal UsuarioPrincipal usuario, RedirectAttributes redirect) {
         try {
@@ -69,7 +70,7 @@ public class VeiculoController {
     }
 
     @GetMapping("/novo")
-    @PreAuthorize(GERENTE_OU_ADMIN)
+    @PreAuthorize(RECEPCAO_OU_GESTAO)
     public String novo(Model model) {
         VeiculoForm form = new VeiculoForm();
         form.setDataEntrada(LocalDateTime.now().truncatedTo(ChronoUnit.MINUTES));
@@ -79,7 +80,7 @@ public class VeiculoController {
     }
 
     @PostMapping
-    @PreAuthorize(GERENTE_OU_ADMIN)
+    @PreAuthorize(RECEPCAO_OU_GESTAO)
     public String criar(@Valid @ModelAttribute("form") VeiculoForm form, BindingResult resultado,
                         Model model, RedirectAttributes redirect) {
         preparar(model);
@@ -97,7 +98,7 @@ public class VeiculoController {
     }
 
     @GetMapping("/{id}/editar")
-    @PreAuthorize(GERENTE_OU_ADMIN)
+    @PreAuthorize(RECEPCAO_OU_GESTAO)
     public String editar(@PathVariable Long id, Model model) {
         model.addAttribute("form", VeiculoForm.de(service.buscar(id)));
         model.addAttribute("id", id);
@@ -106,7 +107,7 @@ public class VeiculoController {
     }
 
     @PostMapping("/{id}")
-    @PreAuthorize(GERENTE_OU_ADMIN)
+    @PreAuthorize(RECEPCAO_OU_GESTAO)
     public String atualizar(@PathVariable Long id, @Valid @ModelAttribute("form") VeiculoForm form,
                             BindingResult resultado, Model model, RedirectAttributes redirect) {
         model.addAttribute("id", id);
@@ -137,7 +138,6 @@ public class VeiculoController {
         return "redirect:/veiculos";
     }
 
-    /** Dados dos campos de seleção do formulário. */
     private void preparar(Model model) {
         model.addAttribute("clientes", clienteService.listar(null));
     }

@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head th:replace="~{fragments/layout :: head('Usuários')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: nav}"></header>
+<main class="container">
+    <div th:replace="~{fragments/layout :: flash}"></div>
+    <div class="card">
+        <h1>Gerenciar usuários</h1>
+        <p class="muted">Somente o Admin Master pode alterar perfis ou redefinir senhas de outros usuários.</p>
+        <div class="tabela">
+            <table>
+                <thead><tr><th>E-mail</th><th>Perfil</th><th>Situação</th><th>Ações</th></tr></thead>
+                <tbody>
+                <tr th:each="u : ${usuarios}">
+                    <td th:text="${u.email}">usuario@oficina.com</td>
+                    <td th:text="${u.funcao.nome == 'ROLE_MECANICO' ? 'Mecânico' : (u.funcao.nome == 'ROLE_ASSISTENTE_ADMINISTRATIVO' ? 'Assistente Administrativo' : (u.funcao.nome == 'ROLE_GERENTE' ? 'Gerente' : (u.funcao.nome == 'ROLE_ADMIN_MASTER' ? 'Admin Master' : 'Funcionário (legado)')))}">Perfil</td>
+                    <td th:text="${u.ativo and !u.bloqueado ? 'Ativo' : 'Indisponível'}">Ativo</td>
+                    <td>
+                        <a class="btn btn-sm" th:if="${u.funcao.nome != 'ROLE_ADMIN_MASTER'}"
+                           th:href="@{/usuarios/{id}/editar(id=${u.id})}">Editar acesso</a>
+                        <span th:if="${u.funcao.nome == 'ROLE_ADMIN_MASTER'}" class="muted">Protegido</span>
+                    </td>
+                </tr>
+                <tr th:if="${#lists.isEmpty(usuarios)}"><td colspan="4">Nenhum usuário encontrado.</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</main>
+</body>
+</html>

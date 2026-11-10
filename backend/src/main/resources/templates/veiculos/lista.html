@@ -7,7 +7,7 @@
     <div th:replace="~{fragments/layout :: flash}"></div>
     <div class="linha">
         <h1>Veículos</h1>
-        <a class="btn btn-primary" th:href="@{/veiculos/novo}" sec:authorize="hasAnyRole('ADMIN_MASTER','GERENTE')">Novo veículo</a>
+        <a class="btn btn-primary" th:href="@{/veiculos/novo}" sec:authorize="hasAnyRole('ADMIN_MASTER','GERENTE','ASSISTENTE_ADMINISTRATIVO')">Novo veículo</a>
     </div>
     <div class="filtros">
         <a class="btn btn-sm" th:classappend="${!todos} ? 'btn-primary'" th:href="@{/veiculos}">Na oficina (fila por chegada)</a>
@@ -33,17 +33,15 @@
                 <td th:text="${#temporals.format(v.dataEntrada, 'dd/MM/yyyy HH:mm')}">01/01/2026 08:00</td>
                 <td th:text="${v.diasNaOficina}">0</td>
                 <td th:text="${#temporals.format(v.previsaoEntrega, 'dd/MM/yyyy')}">01/01/2026</td>
-                <td>
-                    <div class="acoes">
-                        <a class="btn btn-sm" th:href="@{/veiculos/{i}(i=${v.id})}">Detalhes</a>
-                        <a class="btn btn-sm" th:href="@{/veiculos/{i}/editar(i=${v.id})}"
-                           sec:authorize="hasAnyRole('ADMIN_MASTER','GERENTE')">Editar</a>
-                        <form th:action="@{/veiculos/{i}/excluir(i=${v.id})}" method="post"
-                              data-confirm="Excluir este veículo?" sec:authorize="hasAnyRole('ADMIN_MASTER','GERENTE')">
-                            <button type="submit" class="btn btn-sm btn-perigo">Excluir</button>
-                        </form>
-                    </div>
-                </td>
+                <td><div class="acoes">
+                    <a class="btn btn-sm" th:href="@{/veiculos/{i}(i=${v.id})}">Detalhes</a>
+                    <a class="btn btn-sm" th:href="@{/veiculos/{i}/editar(i=${v.id})}"
+                       sec:authorize="hasAnyRole('ADMIN_MASTER','GERENTE','ASSISTENTE_ADMINISTRATIVO')">Editar</a>
+                    <form th:action="@{/veiculos/{i}/excluir(i=${v.id})}" method="post"
+                          data-confirm="Excluir este veículo?" sec:authorize="hasAnyRole('ADMIN_MASTER','GERENTE')">
+                        <button type="submit" class="btn btn-sm btn-perigo">Excluir</button>
+                    </form>
+                </div></td>
             </tr>
             <tr th:if="${#lists.isEmpty(veiculos)}"><td colspan="8" class="muted">Nenhum veículo encontrado.</td></tr>
             </tbody>

@@ -17,7 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @RequiredArgsConstructor
 @Transactional
-@PreAuthorize("hasAnyRole('ADMIN_MASTER','GERENTE')")
+@PreAuthorize("hasAnyRole('ADMIN_MASTER','GERENTE','ASSISTENTE_ADMINISTRATIVO')")
 public class ClienteService {
 
     private final ClienteRepository clientes;
@@ -64,6 +64,7 @@ public class ClienteService {
         return cliente;
     }
 
+    @PreAuthorize("hasAnyRole('ADMIN_MASTER','GERENTE')")
     public void excluir(Long id, UsuarioPrincipal ator) {
         Cliente cliente = buscar(id);
         if (veiculos.countByClienteId(id) > 0) {

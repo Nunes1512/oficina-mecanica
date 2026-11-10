@@ -23,17 +23,14 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-/**
- * Consultar e AVANÇAR o status é liberado a qualquer usuário logado (o funcionário é quem trabalha no veículo);
- * cadastrar, alterar, excluir, voltar status e registrar a entrega é só do gerente e do administrador.
- * A timeline é escrita pelos triggers do banco: aqui só lemos.
- */
 @Service
 @RequiredArgsConstructor
 @Transactional
 public class VeiculoService {
 
     private static final String GERENTE_OU_ADMIN = "hasAnyRole('ADMIN_MASTER','GERENTE')";
+    private static final String RECEPCAO_OU_GESTAO =
+            "hasAnyRole('ADMIN_MASTER','GERENTE','ASSISTENTE_ADMINISTRATIVO')";
 
     private final VeiculoRepository veiculos;
     private final ClienteRepository clientes;
@@ -41,10 +38,6 @@ public class VeiculoService {
     private final OrdemServicoRepository ordens;
     private final AuditoriaService auditoria;
 
-    /**
-     * Fila de atendimento: quem está há mais tempo na oficina vem primeiro. Os veículos já entregues
-     * ficam por último (mais recentes antes) e só aparecem quando pedidos ou quando há busca.
-     */
     @Transactional(readOnly = true)
     public List<Veiculo> listar(String busca, boolean incluirEntregues) {
         String termo = Textos.limpar(busca);
@@ -73,7 +66,7 @@ public class VeiculoService {
         return timeline.findByVeiculoIdOrderByDataAscIdAsc(veiculoId);
     }
 
-    @PreAuthorize(GERENTE_OU_ADMIN)
+    @PreAuthorize(RECEPCAO_OU_GESTAO)
     public Veiculo criar(VeiculoForm form) {
         String placa = Textos.placa(form.getPlaca());
         if (veiculos.existsByPlaca(placa)) {
@@ -85,7 +78,7 @@ public class VeiculoService {
         return veiculos.save(veiculo);
     }
 
-    @PreAuthorize(GERENTE_OU_ADMIN)
+    @PreAuthorize(RECEPCAO_OU_GESTAO)
     public Veiculo atualizar(Long id, VeiculoForm form) {
         Veiculo veiculo = buscar(id);
         String placa = Textos.placa(form.getPlaca());
@@ -96,11 +89,12 @@ public class VeiculoService {
         return veiculo;
     }
 
-    /** Muda o status seguindo a ordem do fluxo e as permissões do perfil (regras em FluxoStatusVeiculo). */
+    /** Status geral do veículo: somente a gestão; status de serviço do mecânico ficam na OS. */
+    @PreAuthorize(GERENTE_OU_ADMIN)
     public Veiculo alterarStatus(Long id, StatusVeiculo novo, UsuarioPrincipal ator) {
         Veiculo veiculo = buscar(id);
         StatusVeiculo atual = veiculo.getStatus();
-        FluxoStatusVeiculo.validar(atual, novo, ator.isGerenteOuAdmin());
+        FluxoStatusVeiculo.validar(atual, novo, true);
         veiculo.setStatus(novo);
         auditoria.registrar(ator, "STATUS", "veiculo", id,
                 veiculo.getPlaca() + ": " + atual.getRotulo() + " para " + novo.getRotulo());
@@ -109,12 +103,18 @@ public class VeiculoService {
 
     @Transactional(readOnly = true)
     public StatusVeiculo proximoDisponivel(Veiculo veiculo, UsuarioPrincipal ator) {
-        return FluxoStatusVeiculo.proximoPara(veiculo.getStatus(), ator.isGerenteOuAdmin());
+        if (ator == null || !ator.isGerenteOuAdmin()) {
+            return null;
+        }
+        return FluxoStatusVeiculo.proximoPara(veiculo.getStatus(), true);
     }
 
     @Transactional(readOnly = true)
     public StatusVeiculo anteriorDisponivel(Veiculo veiculo, UsuarioPrincipal ator) {
-        return FluxoStatusVeiculo.anteriorPara(veiculo.getStatus(), ator.isGerenteOuAdmin());
+        if (ator == null || !ator.isGerenteOuAdmin()) {
+            return null;
+        }
+        return FluxoStatusVeiculo.anteriorPara(veiculo.getStatus(), true);
     }
 
     @PreAuthorize(GERENTE_OU_ADMIN)

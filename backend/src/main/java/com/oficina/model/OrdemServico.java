@@ -17,21 +17,13 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.hibernate.annotations.DynamicUpdate;
 
-/**
- * Ordem de serviço (tabela ordem_servico).
- * valor_pecas, valor_total e data_conclusao são calculados por triggers do banco e ficam como
- * somente leitura aqui, para o Hibernate nunca sobrescrever o valor certo com um valor antigo.
- */
+/** Ordem de serviço. Valores consolidados e data de conclusão vêm de triggers existentes. */
 @Entity
 @Table(name = "ordem_servico")
 @DynamicUpdate
-@Getter
-@Setter
-@NoArgsConstructor
+@Getter @Setter @NoArgsConstructor
 public class OrdemServico {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @Column(nullable = false, unique = true, length = 20)
@@ -61,8 +53,8 @@ public class OrdemServico {
     private BigDecimal valorTotal;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 20)
-    private StatusOs status = StatusOs.ABERTA;
+    @Column(nullable = false, length = 40)
+    private StatusOs status = StatusOs.AGUARDANDO_AVALIACAO;
 
     @Column(name = "data_abertura", nullable = false)
     private LocalDateTime dataAbertura;

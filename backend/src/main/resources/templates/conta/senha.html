@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head th:replace="~{fragments/layout :: head('Minha senha')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: nav}"></header>
+<main class="container">
+    <div class="card">
+        <h1>Alterar minha senha</h1>
+        <div class="alert alert-erro" th:if="${erro}" th:text="${erro}"></div>
+        <p class="muted">Após a alteração você será desconectado para entrar com a nova senha.</p>
+        <form method="post" th:action="@{/minha-conta/senha}">
+            <div><label for="senhaAtual">Senha atual</label>
+                <input id="senhaAtual" name="senhaAtual" type="password" required autocomplete="current-password"></div>
+            <div><label for="novaSenha">Nova senha</label>
+                <input id="novaSenha" name="novaSenha" type="password" required minlength="8" maxlength="64" autocomplete="new-password"></div>
+            <div><label for="confirmacao">Confirme a nova senha</label>
+                <input id="confirmacao" name="confirmacao" type="password" required minlength="8" maxlength="64" autocomplete="new-password"></div>
+            <p class="muted">8 a 64 caracteres, com letra maiúscula, minúscula, número e símbolo.</p>
+            <div class="acoes"><button type="submit" class="btn btn-primary">Alterar senha</button>
+                <a class="btn" th:href="@{/}">Cancelar</a></div>
+        </form>
+    </div>
+</main>
+</body>
+</html>

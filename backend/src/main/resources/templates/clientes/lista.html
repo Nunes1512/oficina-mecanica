@@ -29,7 +29,7 @@
                     <div class="acoes">
                         <a class="btn btn-sm" th:href="@{/clientes/{i}/editar(i=${c.id})}">Editar</a>
                         <form th:action="@{/clientes/{i}/excluir(i=${c.id})}" method="post"
-                              data-confirm="Excluir este cliente?">
+                              sec:authorize="hasAnyRole('ADMIN_MASTER','GERENTE')" data-confirm="Excluir este cliente?">
                             <button type="submit" class="btn btn-sm btn-perigo">Excluir</button>
                         </form>
                     </div>

@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head th:replace="~{fragments/layout :: head('Editar acesso')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: nav}"></header>
+<main class="container">
+    <div th:replace="~{fragments/layout :: flash}"></div>
+    <div class="card">
+        <h1>Editar acesso</h1>
+        <p>Usuário: <strong th:text="${usuario.email}">usuario@oficina.com</strong></p>
+        <h2>Alterar perfil</h2>
+        <form method="post" th:action="@{/usuarios/{id}/perfil(id=${usuario.id})}">
+            <label for="perfil">Novo perfil</label>
+            <select id="perfil" name="perfil" required>
+                <option value="ROLE_MECANICO" th:selected="${usuario.funcao.nome == 'ROLE_MECANICO'}">Mecânico</option>
+                <option value="ROLE_ASSISTENTE_ADMINISTRATIVO" th:selected="${usuario.funcao.nome == 'ROLE_ASSISTENTE_ADMINISTRATIVO'}">Assistente Administrativo</option>
+                <option value="ROLE_GERENTE" th:selected="${usuario.funcao.nome == 'ROLE_GERENTE'}">Gerente</option>
+            </select>
+            <div class="acoes"><button type="submit" class="btn btn-primary">Salvar perfil</button></div>
+        </form>
+        <hr>
+        <h2>Redefinir senha</h2>
+        <p class="muted">Não é possível ver a senha atual. Ao redefinir, a conta precisará entrar novamente.</p>
+        <form method="post" th:action="@{/usuarios/{id}/senha(id=${usuario.id})}">
+            <div class="form-grid">
+                <div><label for="novaSenha">Nova senha</label>
+                    <input type="password" id="novaSenha" name="novaSenha" required minlength="8" maxlength="64" autocomplete="new-password"></div>
+                <div><label for="confirmacao">Confirme a senha</label>
+                    <input type="password" id="confirmacao" name="confirmacao" required minlength="8" maxlength="64" autocomplete="new-password"></div>
+            </div>
+            <p class="muted">Use maiúscula, minúscula, número e símbolo.</p>
+            <div class="acoes"><button type="submit" class="btn btn-primary">Redefinir senha</button></div>
+        </form>
+        <p><a class="btn" th:href="@{/usuarios}">Voltar</a></p>
+    </div>
+</main>
+</body>
+</html>

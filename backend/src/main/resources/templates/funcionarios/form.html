@@ -4,82 +4,81 @@
 <body>
 <header th:replace="~{fragments/layout :: nav}"></header>
 <main class="container">
-    <div class="card">
-        <h1 th:text="${id == null} ? 'Novo funcionário' : 'Editar funcionário'">Funcionário</h1>
-        <form th:action="${id == null} ? @{/funcionarios} : @{/funcionarios/{i}(i=${id})}" th:object="${form}" method="post">
-            <div class="alert alert-erro" th:each="e : ${#fields.globalErrors()}" th:text="${e}"></div>
-            <div class="form-grid">
-                <div>
-                    <label for="nome">Nome</label>
-                    <input type="text" th:field="*{nome}" maxlength="120">
-                    <div class="campo-erro" th:if="${#fields.hasErrors('nome')}" th:errors="*{nome}"></div>
-                </div>
-                <div>
-                    <label for="cpf">CPF</label>
-                    <input type="text" th:field="*{cpf}" maxlength="14" placeholder="000.000.000-00">
-                    <div class="campo-erro" th:if="${#fields.hasErrors('cpf')}" th:errors="*{cpf}"></div>
-                </div>
-                <div>
-                    <label for="telefone">Telefone</label>
-                    <input type="text" th:field="*{telefone}" maxlength="20">
-                    <div class="campo-erro" th:if="${#fields.hasErrors('telefone')}" th:errors="*{telefone}"></div>
-                </div>
-                <div>
-                    <label for="email">E-mail</label>
-                    <input type="email" th:field="*{email}" maxlength="120">
-                    <div class="campo-erro" th:if="${#fields.hasErrors('email')}" th:errors="*{email}"></div>
-                </div>
-                <div>
-                    <label for="cargo">Cargo</label>
-                    <input type="text" th:field="*{cargo}" maxlength="60">
-                    <div class="campo-erro" th:if="${#fields.hasErrors('cargo')}" th:errors="*{cargo}"></div>
-                </div>
-                <div>
-                    <label for="status">Situação</label>
-                    <select th:field="*{status}">
-                        <option th:each="s : ${statusList}" th:value="${s}" th:text="${s.rotulo}">Ativo</option>
-                    </select>
-                    <div class="campo-erro" th:if="${#fields.hasErrors('status')}" th:errors="*{status}"></div>
-                </div>
-            </div>
-            <!-- Admin Master pode criar login ao cadastrar ou editar funcionário sem conta. -->
-            <section th:if="${id == null or !temUsuario}" sec:authorize="hasRole('ADMIN_MASTER')">
-                <h2>Acesso ao sistema (opcional)</h2>
-                <p>Preencha e-mail, senha e perfil para criar o login ao salvar. A opção abaixo também pode ser marcada, mas não é obrigatória se os dados de acesso forem preenchidos.</p>
-                <div>
-                    <label>
-                        <input type="checkbox" th:field="*{criarUsuario}">
-                        Criar usuário para este funcionário
-                    </label>
-                </div>
-                <div class="form-grid">
-                    <div>
-                        <label for="emailUsuario">E-mail de login</label>
-                        <input type="email" th:field="*{emailUsuario}" maxlength="120" autocomplete="off">
-                        <div class="campo-erro" th:if="${#fields.hasErrors('emailUsuario')}" th:errors="*{emailUsuario}"></div>
-                    </div>
-                    <div>
-                        <label for="senhaInicial">Senha inicial</label>
-                        <input type="password" th:field="*{senhaInicial}" maxlength="64" autocomplete="new-password">
-                        <div class="campo-erro" th:if="${#fields.hasErrors('senhaInicial')}" th:errors="*{senhaInicial}"></div>
-                    </div>
-                    <div>
-                        <label for="perfilUsuario">Perfil de acesso</label>
-                        <select th:field="*{perfilUsuario}">
-                            <option value="">Selecione</option>
-                            <option th:each="p : ${perfisUsuario}" th:value="${p}"
-                                    th:text="${p == 'ROLE_GERENTE' ? 'Gerente' : 'Funcionário'}">Funcionário</option>
-                        </select>
-                    </div>
-                </div>
-                <p>Senha forte: 8 a 64 caracteres, com maiúscula, minúscula, número e símbolo.</p>
-            </section>
-            <div class="acoes">
-                <button type="submit" class="btn btn-primary">Salvar</button>
-                <a class="btn" th:href="@{/funcionarios}">Cancelar</a>
-            </div>
-        </form>
+  <div th:replace="~{fragments/layout :: flash}"></div>
+  <div class="card">
+    <h1 th:text="${id == null} ? 'Novo funcionário' : 'Editar funcionário'">Funcionário</h1>
+    <p class="muted" th:if="${id == null}">Ao salvar, o funcionário e seu usuário serão criados juntos. O e-mail informado será o login.</p>
+    <form th:action="${id == null} ? @{/funcionarios} : @{/funcionarios/{i}(i=${id})}" th:object="${form}" method="post">
+      <div class="alert alert-erro" th:each="e : ${#fields.globalErrors()}" th:text="${e}"></div>
+      <div class="form-grid">
+        <div><label for="nome">Nome</label><input type="text" th:field="*{nome}" maxlength="120" required>
+          <div class="campo-erro" th:if="${#fields.hasErrors('nome')}" th:errors="*{nome}"></div></div>
+        <div><label for="cpf">CPF</label><input type="text" th:field="*{cpf}" maxlength="14" placeholder="000.000.000-00" required>
+          <div class="campo-erro" th:if="${#fields.hasErrors('cpf')}" th:errors="*{cpf}"></div></div>
+        <div><label for="telefone">Telefone</label><input type="text" th:field="*{telefone}" maxlength="20"></div>
+        <div><label for="email" th:text="${id == null} ? 'E-mail (login)' : 'E-mail de contato'">E-mail</label><input type="email" th:field="*{email}" maxlength="120" required>
+          <div class="campo-erro" th:if="${#fields.hasErrors('email')}" th:errors="*{email}"></div></div>
+        <div><label for="cargo">Cargo</label><input type="text" th:field="*{cargo}" maxlength="60"></div>
+        <div><label for="status">Situação</label>
+          <select th:field="*{status}"><option th:each="s : ${statusList}" th:value="${s}" th:text="${s.rotulo}">Ativo</option></select></div>
+      </div>
+      <section th:if="${id == null}" sec:authorize="hasRole('ADMIN_MASTER')">
+        <h2>Acesso ao sistema</h2>
+        <p class="muted">O acesso é obrigatório e será criado automaticamente ao salvar o funcionário.</p>
+        <div class="form-grid">
+          <div><label for="perfilUsuario">Perfil de acesso</label>
+            <select th:field="*{perfilUsuario}" required>
+              <option value="">Selecione</option>
+              <option th:each="p : ${perfisUsuario}" th:value="${p}"
+                th:text="${p == 'ROLE_GERENTE' ? 'Gerente' : (p == 'ROLE_MECANICO' ? 'Mecânico' : 'Assistente Administrativo')}">Perfil</option>
+            </select></div>
+          <div><label for="senhaInicial">Senha inicial</label>
+            <input type="password" th:field="*{senhaInicial}" maxlength="64" required autocomplete="new-password"></div>
+        </div>
+        <p class="muted">Senha: 8 a 64 caracteres, com letra maiúscula, minúscula, número e símbolo.</p>
+      </section>
+      <section th:if="${id != null and !temUsuario}" sec:authorize="hasRole('ADMIN_MASTER')">
+        <h2>Ativar acesso de funcionário antigo</h2>
+        <p class="muted">Este cadastro foi criado antes da integração. Informe perfil e senha para vincular um login ao e-mail acima.</p>
+        <div class="form-grid">
+          <div><label for="perfilUsuario">Perfil</label>
+            <select th:field="*{perfilUsuario}"><option value="">Selecione</option>
+              <option th:each="p : ${perfisUsuario}" th:value="${p}"
+                th:text="${p == 'ROLE_GERENTE' ? 'Gerente' : (p == 'ROLE_MECANICO' ? 'Mecânico' : 'Assistente Administrativo')}">Perfil</option>
+            </select></div>
+          <div><label for="senhaInicial">Senha inicial</label>
+            <input type="password" th:field="*{senhaInicial}" maxlength="64" autocomplete="new-password"></div>
+        </div>
+      </section>
+      <div class="acoes"><button type="submit" class="btn btn-primary">Salvar funcionário</button>
+        <a class="btn" th:href="@{/funcionarios}">Cancelar</a></div>
+    </form>
+  </div>
+  <section class="card" th:if="${id != null and temUsuario}">
+    <h2>Conta vinculada ao funcionário</h2>
+    <p><strong>Login:</strong> <span th:text="${conta.email}">login@oficina.com</span></p>
+    <p class="muted">Alterar o e-mail de contato acima não muda o login já existente.</p>
+    <p><strong>Perfil atual:</strong> <span th:text="${conta.funcao.nome == 'ROLE_GERENTE' ? 'Gerente' : (conta.funcao.nome == 'ROLE_MECANICO' ? 'Mecânico' : (conta.funcao.nome == 'ROLE_ASSISTENTE_ADMINISTRATIVO' ? 'Assistente Administrativo' : 'Perfil antigo'))}">Perfil</span></p>
+    <div sec:authorize="hasRole('ADMIN_MASTER')">
+      <h3>Alterar perfil</h3>
+      <form th:action="@{/funcionarios/{i}/perfil(i=${id})}" method="post" class="busca">
+        <select name="perfil" required>
+          <option th:each="p : ${perfisUsuario}" th:value="${p}" th:selected="${conta.funcao.nome == p}"
+            th:text="${p == 'ROLE_GERENTE' ? 'Gerente' : (p == 'ROLE_MECANICO' ? 'Mecânico' : 'Assistente Administrativo')}">Perfil</option>
+        </select>
+        <button type="submit" class="btn">Salvar perfil</button>
+      </form>
+      <h3>Redefinir senha</h3>
+      <form th:action="@{/funcionarios/{i}/senha(i=${id})}" method="post">
+        <div class="form-grid">
+          <div><label for="novaSenha">Nova senha</label><input id="novaSenha" name="novaSenha" type="password" minlength="8" maxlength="64" required autocomplete="new-password"></div>
+          <div><label for="confirmacao">Confirmar nova senha</label><input id="confirmacao" name="confirmacao" type="password" minlength="8" maxlength="64" required autocomplete="new-password"></div>
+        </div>
+        <p class="muted">A senha atual não será exibida. O funcionário deverá entrar novamente após a redefinição.</p>
+        <button type="submit" class="btn">Redefinir senha</button>
+      </form>
     </div>
+  </section>
 </main>
 </body>
 </html>

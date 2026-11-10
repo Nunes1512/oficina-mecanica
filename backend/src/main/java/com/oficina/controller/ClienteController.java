@@ -22,7 +22,7 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 @Controller
 @RequestMapping("/clientes")
 @RequiredArgsConstructor
-@PreAuthorize("hasAnyRole('ADMIN_MASTER','GERENTE')")
+@PreAuthorize("hasAnyRole('ADMIN_MASTER','GERENTE','ASSISTENTE_ADMINISTRATIVO')")
 public class ClienteController {
 
     private final ClienteService service;
@@ -31,7 +31,6 @@ public class ClienteController {
     public String listar(@RequestParam(required = false) String q, Model model) {
         model.addAttribute("clientes", service.listar(q));
         model.addAttribute("q", q);
-        // O indicador de cadastros mensais fica reservado ao futuro dashboard gerencial.
         return "clientes/lista";
     }
 
@@ -82,6 +81,7 @@ public class ClienteController {
     }
 
     @PostMapping("/{id}/excluir")
+    @PreAuthorize("hasAnyRole('ADMIN_MASTER','GERENTE')")
     public String excluir(@PathVariable Long id, @AuthenticationPrincipal UsuarioPrincipal usuario,
                           RedirectAttributes redirect) {
         try {

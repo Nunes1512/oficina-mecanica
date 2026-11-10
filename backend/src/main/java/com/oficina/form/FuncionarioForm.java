@@ -10,10 +10,10 @@ import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.Setter;
 
+/** Um só formulário para cadastro de funcionário + criação automática do login. */
 @Getter
 @Setter
 public class FuncionarioForm {
-
     @NotBlank(message = "Informe o nome.")
     @Size(max = 120, message = "Use no máximo 120 caracteres.")
     private String nome;
@@ -26,6 +26,7 @@ public class FuncionarioForm {
     @Pattern(regexp = "^[0-9()+\\s-]*$", message = "Telefone inválido.")
     private String telefone;
 
+    @NotBlank(message = "Informe o e-mail: ele será usado como login.")
     @Email(message = "E-mail inválido.")
     @Size(max = 120, message = "Use no máximo 120 caracteres.")
     private String email;
@@ -36,16 +37,9 @@ public class FuncionarioForm {
     @NotNull(message = "Informe a situação.")
     private StatusFuncionario status = StatusFuncionario.ATIVO;
 
-    // Pedido explícito de login. Também inferido no serviço pelos campos preenchidos.
-    private boolean criarUsuario;
-
-    @Email(message = "E-mail de login inválido.")
-    @Size(max = 120, message = "Use no máximo 120 caracteres.")
-    private String emailUsuario;
-
+    /** Obrigatório na criação; na edição, apenas para ativar conta de cadastro legado. */
     @Size(max = 64, message = "A senha deve ter no máximo 64 caracteres.")
     private String senhaInicial;
-
     private String perfilUsuario;
 
     public static FuncionarioForm de(Funcionario funcionario) {

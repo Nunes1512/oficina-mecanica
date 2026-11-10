@@ -10,10 +10,9 @@
         <div class="acoes">
             <a class="btn" th:href="@{/veiculos}">Voltar</a>
             <a class="btn btn-primary" th:href="@{/veiculos/{i}/editar(i=${veiculo.id})}"
-               sec:authorize="hasAnyRole('ADMIN_MASTER','GERENTE')">Editar</a>
+               sec:authorize="hasAnyRole('ADMIN_MASTER','GERENTE','ASSISTENTE_ADMINISTRATIVO')">Editar</a>
         </div>
     </div>
-
     <div class="card">
         <h2>Etapa do reparo</h2>
         <ol class="etapas">
@@ -21,7 +20,7 @@
                 th:classappend="${s.ordinal() < veiculo.status.ordinal()} ? 'feita' : (${s == veiculo.status} ? 'atual')"
                 th:text="${s.rotulo}">Etapa</li>
         </ol>
-        <div class="acoes">
+        <div class="acoes" sec:authorize="hasAnyRole('ADMIN_MASTER','GERENTE')">
             <form th:if="${anterior != null}" th:action="@{/veiculos/{i}/status(i=${veiculo.id})}" method="post"
                   data-confirm="Voltar o status do veículo uma etapa?">
                 <input type="hidden" name="status" th:value="${anterior}">
@@ -33,10 +32,9 @@
             </form>
         </div>
         <p class="muted" th:if="${proximo == null and veiculo.status.name() == 'CONCLUIDO'}">
-            Serviço concluído. Somente o gerente registra a entrega do veículo.
+            Serviço concluído. Somente a gestão registra a entrega do veículo.
         </p>
     </div>
-
     <div class="card">
         <div class="form-grid">
             <div><strong>Cliente</strong><br><span th:text="${veiculo.cliente.nome}">Cliente</span></div>
@@ -49,7 +47,6 @@
             <div><strong>Quilometragem</strong><br><span th:text="${veiculo.quilometragem}">0</span></div>
         </div>
     </div>
-
     <div class="card">
         <h2>Linha do tempo</h2>
         <ul class="timeline">

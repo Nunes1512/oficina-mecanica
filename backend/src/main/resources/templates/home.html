@@ -10,9 +10,16 @@
             (perfil <span class="badge" th:text="${usuario.perfilRotulo}">perfil</span>).</p>
     </div>
     <div class="cards">
-        <a class="card" th:href="@{/veiculos}"><div class="valor">Veículos</div><div class="rotulo">Consultar e acompanhar</div></a>
-        <a class="card" th:href="@{/clientes}" sec:authorize="hasAnyRole('ADMIN_MASTER','GERENTE')"><div class="valor">Clientes</div><div class="rotulo">Cadastro de clientes</div></a>
-        <a class="card" th:href="@{/funcionarios}" sec:authorize="hasAnyRole('ADMIN_MASTER','GERENTE')"><div class="valor">Funcionários</div><div class="rotulo">Equipe da oficina</div></a>
+        <a class="card" th:href="@{/veiculos}">
+            <div class="valor">Veículos</div><div class="rotulo">Consultar e cadastrar veículos</div>
+        </a>
+        <a class="card" th:href="@{/clientes}"
+           sec:authorize="hasAnyRole('ADMIN_MASTER','GERENTE','ASSISTENTE_ADMINISTRATIVO')">
+            <div class="valor">Clientes</div><div class="rotulo">Cadastro de clientes</div>
+        </a>
+        <a class="card" th:href="@{/funcionarios}" sec:authorize="hasAnyRole('ADMIN_MASTER','GERENTE')">
+            <div class="valor">Funcionários</div><div class="rotulo">Equipe da oficina</div>
+        </a>
     </div>
 </main>
 </body>
