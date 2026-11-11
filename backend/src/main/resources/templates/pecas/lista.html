@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Peças e Estoque')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: nav}"></header>
+<main class="container">
+    <div th:replace="~{fragments/layout :: flash}"></div>
+    <div class="card">
+        <h1>Peças e Estoque</h1>
+        <p class="muted">O preço de venda é sugerido ao gerente no orçamento. O saldo é atualizado por entradas e pelo uso nas OS.</p>
+        <div class="acoes">
+            <a class="btn btn-primary" th:href="@{/pecas/nova}">+ Cadastrar peça</a>
+            <a class="btn" th:href="@{/ordens}">Ordens de Serviço</a>
+        </div>
+        <form th:action="@{/pecas}" method="get" class="acoes">
+            <label for="q">Buscar por nome</label>
+            <input id="q" name="q" type="search" th:value="${busca}" placeholder="Ex.: Filtro de óleo" maxlength="120">
+            <button class="btn" type="submit">Buscar</button>
+        </form>
+        <div class="tabela">
+            <table>
+                <thead><tr><th>Peça</th><th>Fabricante</th><th>Saldo</th><th>Mínimo</th><th>Preço de venda (un.)</th><th>Ações</th></tr></thead>
+                <tbody>
+                    <tr th:each="p : ${pecas}">
+                        <td th:text="${p.nome}">Peça</td>
+                        <td th:text="${p.fabricante == null or #strings.isEmpty(p.fabricante) ? '—' : p.fabricante}">Fabricante</td>
+                        <td><strong th:text="${p.quantidade}">0</strong>
+                            <span class="badge badge-alerta" th:if="${p.quantidade <= p.estoqueMinimo}">Estoque baixo</span>
+                        </td>
+                        <td th:text="${p.estoqueMinimo}">0</td>
+                        <td th:text="${'R$ ' + #numbers.formatDecimal(p.valorUnitario, 1, 'POINT', 2, 'COMMA')}">R$ 0,00</td>
+                        <td>
+                            <a class="btn btn-sm" th:href="@{/pecas/{id}/editar(id=${p.id})}">Editar cadastro / preço</a>
+                            <a class="btn btn-sm" th:href="@{/pecas/{id}/entrada(id=${p.id})}">+ Entrada de estoque</a>
+                        </td>
+                    </tr>
+                    <tr th:if="${#lists.isEmpty(pecas)}"><td colspan="6">Nenhuma peça encontrada.</td></tr>
+                </tbody>
+            </table>
+        </div>
+        <p class="muted">Não há exclusão de peças nesta tela: preservar o cadastro evita invalidar o histórico de orçamentos e movimentações.</p>
+    </div>
+</main>
+</body>
+</html>

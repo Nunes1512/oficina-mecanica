@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Entrada de estoque')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: nav}"></header>
+<main class="container">
+    <div class="card">
+        <h1>Entrada de estoque</h1>
+        <p><strong th:text="${peca.nome}">Peça</strong> — saldo atual: <strong th:text="${peca.quantidade}">0</strong></p>
+        <p class="muted">O custo unitário de aquisição é diferente do preço de venda da peça. A entrada cria uma movimentação registrada.</p>
+        <form th:object="${form}" th:action="@{/pecas/{id}/entrada(id=${peca.id})}" method="post">
+            <div class="alert alert-erro" th:each="e : ${#fields.globalErrors()}" th:text="${e}"></div>
+            <div class="form-grid">
+                <div>
+                    <label for="quantidade">Quantidade recebida</label>
+                    <input id="quantidade" th:field="*{quantidade}" type="number" min="1" max="1000000" required>
+                    <div class="campo-erro" th:if="${#fields.hasErrors('quantidade')}" th:errors="*{quantidade}"></div>
+                </div>
+                <div>
+                    <label for="custoUnitario">Custo unitário de compra (R$)</label>
+                    <input id="custoUnitario" th:field="*{custoUnitario}" type="number" min="0" step="0.01" max="99999999.99" required>
+                    <div class="campo-erro" th:if="${#fields.hasErrors('custoUnitario')}" th:errors="*{custoUnitario}"></div>
+                </div>
+            </div>
+            <label for="observacao">Observações (opcional)</label>
+            <textarea id="observacao" th:field="*{observacao}" rows="3" maxlength="200" placeholder="Ex.: compra de 5 filtros para reposição de estoque"></textarea>
+            <div class="campo-erro" th:if="${#fields.hasErrors('observacao')}" th:errors="*{observacao}"></div>
+            <div class="acoes">
+                <button type="submit" class="btn btn-primary">Registrar entrada</button>
+                <a class="btn" th:href="@{/pecas}">Cancelar</a>
+            </div>
+        </form>
+    </div>
+</main>
+</body>
+</html>

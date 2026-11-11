@@ -15,6 +15,7 @@
         <a th:href="@{/ordens}" sec:authorize="hasAnyRole('ADMIN_MASTER','GERENTE','MECANICO','ASSISTENTE_ADMINISTRATIVO')">Ordens de Serviço</a>
         <a th:href="@{/clientes}" sec:authorize="hasAnyRole('ADMIN_MASTER','GERENTE','ASSISTENTE_ADMINISTRATIVO')">Clientes</a>
         <a th:href="@{/funcionarios}" sec:authorize="hasAnyRole('ADMIN_MASTER','GERENTE')">Funcionários</a>
+        <a th:href="@{/pecas}" sec:authorize="hasAnyRole('ADMIN_MASTER','GERENTE')">Peças e Estoque</a>
     </nav>
     <span class="spacer"></span>
     <a class="usuario" sec:authorize="isAuthenticated()" th:href="@{/minha-conta/senha}" title="Trocar minha senha" sec:authentication="name">usuario</a>

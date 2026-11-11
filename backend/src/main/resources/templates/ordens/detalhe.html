@@ -56,36 +56,46 @@
         <p class="muted">Os serviços representam a mão de obra. As peças são identificadas pelo nome no estoque, separadamente da descrição técnica.</p>
         <h3>Serviços / Mão de obra</h3>
         <div class="tabela" th:if="${!#lists.isEmpty(servicosOrcados)}"><table>
-            <thead><tr><th>Serviço a executar</th><th>Quantidade</th><th>Preço unitário</th><th>Subtotal</th></tr></thead>
+            <thead><tr><th>Serviço a executar</th><th>Quantidade</th><th th:if="${gestao or podeRecepcao}">Preço unitário</th><th th:if="${gestao or podeRecepcao}">Subtotal</th></tr></thead>
             <tbody><tr th:each="item : ${servicosOrcados}">
                 <td th:text="${item.descricao}">Troca de óleo</td>
                 <td th:text="${item.quantidade}">1</td>
-                <td th:text="${item.valorUnitario == null ? 'A definir' : 'R$ ' + #numbers.formatDecimal(item.valorUnitario, 1, 'POINT', 2, 'COMMA')}">—</td>
-                <td th:text="${item.valorUnitario == null ? 'A definir' : 'R$ ' + #numbers.formatDecimal(item.valorUnitario * item.quantidade, 1, 'POINT', 2, 'COMMA')}">—</td>
+                <td th:if="${gestao or podeRecepcao}" th:text="${item.valorUnitario == null ? 'A definir' : 'R$ ' + #numbers.formatDecimal(item.valorUnitario, 1, 'POINT', 2, 'COMMA')}">—</td>
+                <td th:if="${gestao or podeRecepcao}" th:text="${item.valorUnitario == null ? 'A definir' : 'R$ ' + #numbers.formatDecimal(item.valorUnitario * item.quantidade, 1, 'POINT', 2, 'COMMA')}">—</td>
             </tr></tbody></table></div>
         <p class="muted" th:if="${#lists.isEmpty(servicosOrcados)}">Nenhum serviço de mão de obra cadastrado.</p>
-        <p class="os-subtotal" th:text="${'Subtotal mão de obra: R$ ' + #numbers.formatDecimal(totalServicos, 1, 'POINT', 2, 'COMMA')}">Mão de obra</p>
+        <p class="os-subtotal" th:if="${gestao or podeRecepcao}" th:text="${'Subtotal mão de obra: R$ ' + #numbers.formatDecimal(totalServicos, 1, 'POINT', 2, 'COMMA')}">Mão de obra</p>
         <h3>Peças do estoque</h3>
         <div class="tabela" th:if="${!#lists.isEmpty(pecasOrcadas)}"><table>
-            <thead><tr><th>Peça (nome cadastrado)</th><th>Observação / aplicação</th><th>Quantidade</th><th>Preço unitário</th><th>Subtotal</th></tr></thead>
+            <thead><tr><th>Peça (nome cadastrado)</th><th>Observação / aplicação</th><th>Quantidade</th><th th:if="${gestao or podeRecepcao}">Preço unitário</th><th th:if="${gestao or podeRecepcao}">Subtotal</th></tr></thead>
             <tbody><tr th:each="item : ${pecasOrcadas}">
                 <td><strong th:text="${item.peca.nome}">Peça</strong></td>
                 <td th:text="${item.descricao}">Aplicação</td>
                 <td th:text="${item.quantidade}">1</td>
-                <td th:text="${item.valorUnitario == null ? 'A definir' : 'R$ ' + #numbers.formatDecimal(item.valorUnitario, 1, 'POINT', 2, 'COMMA')}">—</td>
-                <td th:text="${item.valorUnitario == null ? 'A definir' : 'R$ ' + #numbers.formatDecimal(item.valorUnitario * item.quantidade, 1, 'POINT', 2, 'COMMA')}">—</td>
+                <td th:if="${gestao or podeRecepcao}" th:text="${item.valorUnitario == null ? 'A definir' : 'R$ ' + #numbers.formatDecimal(item.valorUnitario, 1, 'POINT', 2, 'COMMA')}">—</td>
+                <td th:if="${gestao or podeRecepcao}" th:text="${item.valorUnitario == null ? 'A definir' : 'R$ ' + #numbers.formatDecimal(item.valorUnitario * item.quantidade, 1, 'POINT', 2, 'COMMA')}">—</td>
             </tr></tbody></table></div>
         <p class="muted" th:if="${#lists.isEmpty(pecasOrcadas)}">Nenhuma peça necessária.</p>
-        <p class="os-subtotal" th:text="${'Subtotal peças: R$ ' + #numbers.formatDecimal(totalPecas, 1, 'POINT', 2, 'COMMA')}">Peças</p>
-        <p class="os-total" th:if="${os.status.name() != 'AGUARDANDO_PRECIFICACAO'}"
+        <p class="os-subtotal" th:if="${gestao or podeRecepcao}" th:text="${'Subtotal peças: R$ ' + #numbers.formatDecimal(totalPecas, 1, 'POINT', 2, 'COMMA')}">Peças</p>
+        <p class="os-total" th:if="${(gestao or podeRecepcao) and os.status.name() != 'AGUARDANDO_PRECIFICACAO'}"
            th:text="${'Total previsto: R$ ' + #numbers.formatDecimal(total, 1, 'POINT', 2, 'COMMA')}">Total</p>
         <p class="muted" th:if="${os.veiculo.previsaoEntrega != null}" th:text="${'Previsão de entrega: ' + #temporals.format(os.veiculo.previsaoEntrega, 'dd/MM/yyyy')}">Previsão</p>
         <form th:if="${gestao and os.status.name() == 'AGUARDANDO_PRECIFICACAO'}"
               th:action="@{/ordens/{id}/orcamentos/{o}/precos(id=${os.id},o=${orcamento.id})}" method="post">
-            <h3>Gerente — definir valores</h3><div class="os-pricing" th:each="item : ${itens}">
+            <h3>Gerente — definir valores</h3>
+            <p class="muted">Peças recebem o preço de venda do catálogo como sugestão editável. Mão de obra continua com preenchimento manual. O valor salvo fica fixado nesta versão do orçamento.</p>
+            <p><a th:href="@{/pecas}" class="btn btn-sm">Consultar catálogo de peças</a></p>
+            <div class="os-pricing" th:each="item : ${itens}">
                 <input type="hidden" name="itemIds" th:value="${item.id}">
                 <label th:for="${'valor-' + item.id}" th:text="${(item.tipo.name() == 'PECA' ? item.peca.nome + ' — ' + item.descricao : 'Mão de obra — ' + item.descricao) + ' · ' + item.quantidade + ' un.'}">Item</label>
-                <input th:id="${'valor-' + item.id}" name="valores" type="number" step="0.01" min="0" max="99999999.99" required placeholder="Preço unitário (R$)">
+                <div>
+                    <input th:id="${'valor-' + item.id}" name="valores" type="number" step="0.01" min="0" max="99999999.99" required
+                           th:value="${item.valorUnitario != null ? item.valorUnitario : (item.peca != null ? item.peca.valorUnitario : null)}"
+                           placeholder="Preço unitário (R$)">
+                    <small class="muted" th:if="${item.tipo.name() == 'PECA'}"
+                           th:text="${'Preço de referência do estoque: R$ ' + #numbers.formatDecimal(item.peca.valorUnitario, 1, 'POINT', 2, 'COMMA')}">Preço sugerido</small>
+                    <small class="muted" th:if="${item.tipo.name() == 'SERVICO'}">Informe o valor da mão de obra.</small>
+                </div>
             </div><button type="submit" class="btn btn-primary">Salvar preços</button>
         </form>
         <form th:if="${gestao and os.status.name() == 'AGUARDANDO_APROVACAO_GERENTE'}"
@@ -178,7 +188,7 @@
     </section>
     <section class="card os-panel" th:if="${os.status.name() == 'AGUARDANDO_EXECUCAO'}">
         <h2>Execução liberada</h2>
-        <p>O orçamento foi aprovado pelo cliente. Confira acima os serviços, as peças cadastradas e os valores antes de iniciar.</p>
+        <p>O orçamento foi aprovado pelo cliente. Confira acima os serviços e as peças cadastradas antes de iniciar.</p>
         <form th:if="${podeExecutar}" th:action="@{/ordens/{id}/iniciar-execucao(id=${os.id})}" method="post">
             <button type="submit" class="btn btn-primary">Iniciar execução da OS</button>
         </form>
@@ -261,7 +271,7 @@
         </form>
         <p th:unless="${podeRecepcao}" class="muted">Somente recepção ou gestão pode registrar pagamentos.</p>
     </section>
-    <section class="card os-panel" th:if="${pagamento != null}">
+    <section class="card os-panel" th:if="${pagamento != null and (gestao or podeRecepcao)}">
         <h2>Pagamento registrado</h2>
         <p><strong>Valor:</strong> R$ <span th:text="${#numbers.formatDecimal(pagamento.valor, 1, 2)}">0,00</span>
             <strong> | Forma:</strong> <span th:text="${pagamento.formaPagamento.rotulo}">Pix</span></p>

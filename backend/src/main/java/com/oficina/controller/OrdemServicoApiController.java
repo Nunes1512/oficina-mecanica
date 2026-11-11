@@ -63,10 +63,11 @@ public class OrdemServicoApiController {
     }
     public record ItemResposta(Long id, TipoItemOrcamento tipo, String descricao, Long pecaId,
                                Integer quantidade, BigDecimal valorUnitario) {
-        static ItemResposta de(ItemOrcamento i) {
+        /** O mecânico visualiza itens e quantidades, mas não preços comerciais. */
+        static ItemResposta de(ItemOrcamento i, boolean podeVerPrecos) {
             return new ItemResposta(i.getId(), i.getTipo(), i.getDescricao(),
                     i.getPeca() == null ? null : i.getPeca().getId(),
-                    i.getQuantidade(), i.getValorUnitario());
+                    i.getQuantidade(), podeVerPrecos ? i.getValorUnitario() : null);
         }
     }
 
@@ -89,7 +90,9 @@ public class OrdemServicoApiController {
     @GetMapping("/{id}/orcamentos/{orcamentoId}/itens")
     public List<ItemResposta> itens(@PathVariable Long id, @PathVariable Long orcamentoId,
                                     @AuthenticationPrincipal UsuarioPrincipal ator) {
-        return fluxo.listarItens(id, orcamentoId, ator).stream().map(ItemResposta::de).toList();
+        boolean podeVerPrecos = ator != null && (ator.isGerenteOuAdmin() || ator.isAssistente());
+        return fluxo.listarItens(id, orcamentoId, ator).stream()
+                .map(i -> ItemResposta.de(i, podeVerPrecos)).toList();
     }
 
     @PostMapping

@@ -23,6 +23,9 @@
         <a class="card" th:href="@{/funcionarios}" sec:authorize="hasAnyRole('ADMIN_MASTER','GERENTE')">
             <div class="valor">Funcionários</div><div class="rotulo">Equipe da oficina</div>
         </a>
+        <a class="card" th:href="@{/pecas}" sec:authorize="hasAnyRole('ADMIN_MASTER','GERENTE')">
+            <div class="valor">Peças e Estoque</div><div class="rotulo">Catálogo, preços e entradas de estoque</div>
+        </a>
     </div>
 </main>
 </body>

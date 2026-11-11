@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Cadastro de peças')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: nav}"></header>
+<main class="container">
+    <div class="card">
+        <h1 th:text="${id == null ? 'Cadastrar peça' : 'Editar peça'}">Cadastro de peça</h1>
+        <p class="muted">Este é o preço de VENDA de referência, utilizado como sugestão no orçamento. O gerente pode alterá-lo na OS.</p>
+        <form th:object="${form}" th:action="${id == null} ? @{/pecas} : @{/pecas/{i}(i=${id})}" method="post">
+            <div class="alert alert-erro" th:each="e : ${#fields.globalErrors()}" th:text="${e}"></div>
+            <div class="form-grid">
+                <div>
+                    <label for="nome">Nome da peça</label>
+                    <input id="nome" th:field="*{nome}" type="text" maxlength="120" required>
+                    <div class="campo-erro" th:if="${#fields.hasErrors('nome')}" th:errors="*{nome}"></div>
+                </div>
+                <div>
+                    <label for="fabricante">Fabricante</label>
+                    <input id="fabricante" th:field="*{fabricante}" type="text" maxlength="80">
+                    <div class="campo-erro" th:if="${#fields.hasErrors('fabricante')}" th:errors="*{fabricante}"></div>
+                </div>
+                <div>
+                    <label for="valorUnitario">Preço de venda unitário (R$)</label>
+                    <input id="valorUnitario" th:field="*{valorUnitario}" type="number" min="0" step="0.01" max="99999999.99" required>
+                    <div class="campo-erro" th:if="${#fields.hasErrors('valorUnitario')}" th:errors="*{valorUnitario}"></div>
+                </div>
+                <div>
+                    <label for="estoqueMinimo">Estoque mínimo</label>
+                    <input id="estoqueMinimo" th:field="*{estoqueMinimo}" type="number" min="0" max="1000000" required>
+                    <div class="campo-erro" th:if="${#fields.hasErrors('estoqueMinimo')}" th:errors="*{estoqueMinimo}"></div>
+                </div>
+            </div>
+            <p class="muted">A quantidade disponível não é editada aqui. Para adicionar unidades, use “Entrada de estoque”.</p>
+            <p class="muted" th:if="${id != null}">Alterar o preço de referência não altera nenhum orçamento já salvo.</p>
+            <div class="acoes">
+                <button type="submit" class="btn btn-primary">Salvar</button>
+                <a class="btn" th:href="@{/pecas}">Voltar</a>
+            </div>
+        </form>
+    </div>
+</main>
+</body>
+</html>
