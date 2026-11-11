@@ -10,8 +10,11 @@
             (perfil <span class="badge" th:text="${usuario.perfilRotulo}">perfil</span>).</p>
     </div>
     <div class="cards">
+        <a class="card" th:href="@{/ordens}" sec:authorize="hasAnyRole('ADMIN_MASTER','GERENTE','MECANICO','ASSISTENTE_ADMINISTRATIVO')">
+            <div class="valor">Ordens de Serviço</div><div class="rotulo">Atendimentos, avaliações e orçamentos</div>
+        </a>
         <a class="card" th:href="@{/veiculos}">
-            <div class="valor">Veículos</div><div class="rotulo">Consultar e cadastrar veículos</div>
+            <div class="valor">Veículos</div><div class="rotulo">Cadastro de veículos</div>
         </a>
         <a class="card" th:href="@{/clientes}"
            sec:authorize="hasAnyRole('ADMIN_MASTER','GERENTE','ASSISTENTE_ADMINISTRATIVO')">

@@ -2,14 +2,10 @@ package com.oficina.controller;
 
 import com.oficina.exception.NegocioException;
 import com.oficina.form.VeiculoForm;
-import com.oficina.model.StatusVeiculo;
-import com.oficina.model.Veiculo;
 import com.oficina.security.UsuarioPrincipal;
 import com.oficina.service.ClienteService;
 import com.oficina.service.VeiculoService;
 import jakarta.validation.Valid;
-import java.time.LocalDateTime;
-import java.time.temporal.ChronoUnit;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -45,36 +41,17 @@ public class VeiculoController {
         return "veiculos/lista";
     }
 
+    // Link antigo: os detalhes operacionais ficam em /ordens, não no cadastro do veículo.
     @GetMapping("/{id}")
-    public String detalhe(@PathVariable Long id, @AuthenticationPrincipal UsuarioPrincipal usuario, Model model) {
-        Veiculo veiculo = service.buscar(id);
-        model.addAttribute("veiculo", veiculo);
-        model.addAttribute("timeline", service.timeline(id));
-        model.addAttribute("etapas", StatusVeiculo.values());
-        model.addAttribute("proximo", service.proximoDisponivel(veiculo, usuario));
-        model.addAttribute("anterior", service.anteriorDisponivel(veiculo, usuario));
-        return "veiculos/detalhe";
-    }
-
-    @PostMapping("/{id}/status")
-    @PreAuthorize(GERENTE_OU_ADMIN)
-    public String alterarStatus(@PathVariable Long id, @RequestParam StatusVeiculo status,
-                                @AuthenticationPrincipal UsuarioPrincipal usuario, RedirectAttributes redirect) {
-        try {
-            service.alterarStatus(id, status, usuario);
-            redirect.addFlashAttribute("sucesso", "Status alterado para \"" + status.getRotulo() + "\".");
-        } catch (NegocioException erro) {
-            redirect.addFlashAttribute("erro", erro.getMessage());
-        }
-        return "redirect:/veiculos/" + id;
+    public String detalheLegado(@PathVariable Long id) {
+        service.buscar(id); // confirma existência
+        return "redirect:/veiculos";
     }
 
     @GetMapping("/novo")
     @PreAuthorize(RECEPCAO_OU_GESTAO)
     public String novo(Model model) {
-        VeiculoForm form = new VeiculoForm();
-        form.setDataEntrada(LocalDateTime.now().truncatedTo(ChronoUnit.MINUTES));
-        model.addAttribute("form", form);
+        model.addAttribute("form", new VeiculoForm());
         preparar(model);
         return "veiculos/form";
     }
@@ -122,7 +99,7 @@ public class VeiculoController {
             return "veiculos/form";
         }
         redirect.addFlashAttribute("sucesso", "Veículo atualizado com sucesso.");
-        return "redirect:/veiculos/" + id;
+        return "redirect:/veiculos";
     }
 
     @PostMapping("/{id}/excluir")

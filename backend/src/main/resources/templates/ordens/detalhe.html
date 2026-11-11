@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Ordem de Serviço')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: nav}"></header>
+<main class="container">
+    <div th:replace="~{fragments/layout :: flash}"></div>
+    <div class="linha"><div><p class="muted">Ordem de Serviço</p><h1 th:text="${os.numero}">OS-0001</h1></div><a class="btn" th:href="@{/ordens}">Voltar à listagem</a></div>
+    <div class="os-status-line"><span class="badge" th:text="${os.status.rotulo}">Aguardando avaliação</span><span class="muted" th:text="${'Aberta em ' + #temporals.format(os.dataAbertura, 'dd/MM/yyyy HH:mm')}">Data</span></div>
+    <div class="os-two">
+        <section class="card os-panel"><h2>Cliente</h2><p><strong th:text="${os.veiculo.cliente.nome}">Nome</strong></p>
+            <div class="os-detail-grid"><div><small>CPF</small><span th:text="${os.veiculo.cliente.cpf}">—</span></div><div><small>Telefone</small><span th:text="${os.veiculo.cliente.telefone ?: '—'}">—</span></div><div><small>E-mail</small><span th:text="${os.veiculo.cliente.email ?: '—'}">—</span></div></div>
+        </section>
+        <section class="card os-panel"><h2>Veículo</h2><p><strong th:text="${os.veiculo.marca + ' ' + os.veiculo.modelo}">Veículo</strong></p>
+            <div class="os-detail-grid"><div><small>Placa</small><span th:text="${os.veiculo.placa}">—</span></div><div><small>Ano / Cor</small><span th:text="${os.veiculo.ano + ' / ' + (os.veiculo.cor ?: '—')}">—</span></div><div><small>Quilometragem</small><span th:text="${os.veiculo.quilometragem != null ? os.veiculo.quilometragem : '—'}">—</span></div></div>
+        </section>
+    </div>
+    <section class="card os-panel"><h2>Solicitação da recepção</h2><p class="os-multiline" th:text="${os.problema}">Problema relatado</p></section>
+    <section class="card os-panel">
+        <h2>Mecânico responsável</h2><p th:text="${os.funcionario != null ? os.funcionario.nome : 'Ainda não designado pelo gerente'}">—</p>
+        <form th:if="${gestao and (os.status.name() == 'AGUARDANDO_AVALIACAO' or os.status.name() == 'EM_AVALIACAO' or (admin and os.status.name() == 'REVISAO_ORCAMENTO'))}"
+              th:action="@{/ordens/{id}/mecanico(id=${os.id})}" method="post" class="os-inline">
+            <select name="funcionarioId" required><option value="">Selecione um mecânico ativo...</option>
+                <option th:each="m : ${mecanicos}" th:value="${m.id}" th:text="${m.nome}" th:selected="${os.funcionario != null and m.id == os.funcionario.id}">Mecânico</option>
+            </select><button class="btn btn-primary" type="submit">Designar mecânico</button>
+        </form>
+    </section>
+    <section class="card os-panel" th:if="${(os.status.name() == 'EM_AVALIACAO' or os.status.name() == 'REVISAO_ORCAMENTO') and podeAvaliar}">
+        <h2>Diagnóstico técnico e itens necessários</h2>
+        <p class="muted" th:if="${orcamento != null and orcamento.decisaoCliente.name() == 'RECUSADO'}">O cliente recusou a versão anterior. Esta avaliação criará um novo orçamento sem apagar o histórico.</p>
+        <p class="muted">O mecânico descreve serviços e peças; não atribui preços. Peça orçada não sai do estoque.</p>
+        <form th:action="@{/ordens/{id}/avaliacao(id=${os.id})}" method="post">
+            <label for="diagnostico">Diagnóstico técnico</label>
+            <textarea id="diagnostico" name="diagnostico" rows="4" maxlength="4000" required
+                      placeholder="Descreva o que foi identificado na avaliação..." th:text="${os.diagnostico}"></textarea>
+            <h3>Serviços e peças necessários</h3>
+            <p class="muted">Comece com um item. Use “Adicionar serviço ou peça” para incluir mais e “Excluir” para remover erros.</p>
+            <div class="tabela"><table><thead><tr><th>Tipo</th><th>Serviço / descrição</th><th>Peça do estoque</th><th>Quantidade</th><th>Ações</th></tr></thead>
+                <tbody id="itensAvaliacao"><tr class="os-item-row">
+                    <td><select name="tipos" required><option value="">Selecione...</option><option value="SERVICO">Serviço</option><option value="PECA">Peça</option></select></td>
+                    <td><input name="descricoes" type="text" maxlength="255" required placeholder="O que precisa ser feito?"></td>
+                    <td><select name="pecasIds"><option value="">Não se aplica</option><option th:each="p : ${pecas}" th:value="${p.id}" th:text="${p.nome + ' (estoque: ' + p.quantidade + ')'}">Peça</option></select></td>
+                    <td><input name="quantidades" type="number" value="1" min="1" max="100000" required class="os-qtd"></td>
+                    <td><button type="button" class="btn os-remove-item" aria-label="Excluir serviço ou peça">Excluir</button></td>
+                </tr></tbody></table></div>
+            <div class="os-actions"><button id="adicionarItem" class="btn" type="button">+ Adicionar serviço ou peça</button><button type="submit" class="btn btn-primary">Enviar avaliação ao gerente</button></div>
+        </form>
+    </section>
+    <section class="card os-panel" th:if="${os.diagnostico != null and os.status.name() != 'EM_AVALIACAO' and os.status.name() != 'REVISAO_ORCAMENTO'}">
+        <h2>Diagnóstico técnico</h2><p class="os-multiline" th:text="${os.diagnostico}">Diagnóstico</p>
+    </section>
+    <section class="card os-panel" th:if="${orcamento != null}">
+        <div class="linha"><div><h2>Orçamento — serviços e peças</h2>
+            <p class="muted" th:text="${rotulosOrcamentos[orcamento.id]}">Proposta</p></div>
+            <span class="badge" th:text="${orcamento.decisaoCliente}">PENDENTE</span></div>
+        <p class="muted">Os serviços representam a mão de obra. As peças são identificadas pelo nome no estoque, separadamente da descrição técnica.</p>
+        <h3>Serviços / Mão de obra</h3>
+        <div class="tabela" th:if="${!#lists.isEmpty(servicosOrcados)}"><table>
+            <thead><tr><th>Serviço a executar</th><th>Quantidade</th><th>Preço unitário</th><th>Subtotal</th></tr></thead>
+            <tbody><tr th:each="item : ${servicosOrcados}">
+                <td th:text="${item.descricao}">Troca de óleo</td>
+                <td th:text="${item.quantidade}">1</td>
+                <td th:text="${item.valorUnitario == null ? 'A definir' : 'R$ ' + #numbers.formatDecimal(item.valorUnitario, 1, 'POINT', 2, 'COMMA')}">—</td>
+                <td th:text="${item.valorUnitario == null ? 'A definir' : 'R$ ' + #numbers.formatDecimal(item.valorUnitario * item.quantidade, 1, 'POINT', 2, 'COMMA')}">—</td>
+            </tr></tbody></table></div>
+        <p class="muted" th:if="${#lists.isEmpty(servicosOrcados)}">Nenhum serviço de mão de obra cadastrado.</p>
+        <p class="os-subtotal" th:text="${'Subtotal mão de obra: R$ ' + #numbers.formatDecimal(totalServicos, 1, 'POINT', 2, 'COMMA')}">Mão de obra</p>
+        <h3>Peças do estoque</h3>
+        <div class="tabela" th:if="${!#lists.isEmpty(pecasOrcadas)}"><table>
+            <thead><tr><th>Peça (nome cadastrado)</th><th>Observação / aplicação</th><th>Quantidade</th><th>Preço unitário</th><th>Subtotal</th></tr></thead>
+            <tbody><tr th:each="item : ${pecasOrcadas}">
+                <td><strong th:text="${item.peca.nome}">Peça</strong></td>
+                <td th:text="${item.descricao}">Aplicação</td>
+                <td th:text="${item.quantidade}">1</td>
+                <td th:text="${item.valorUnitario == null ? 'A definir' : 'R$ ' + #numbers.formatDecimal(item.valorUnitario, 1, 'POINT', 2, 'COMMA')}">—</td>
+                <td th:text="${item.valorUnitario == null ? 'A definir' : 'R$ ' + #numbers.formatDecimal(item.valorUnitario * item.quantidade, 1, 'POINT', 2, 'COMMA')}">—</td>
+            </tr></tbody></table></div>
+        <p class="muted" th:if="${#lists.isEmpty(pecasOrcadas)}">Nenhuma peça necessária.</p>
+        <p class="os-subtotal" th:text="${'Subtotal peças: R$ ' + #numbers.formatDecimal(totalPecas, 1, 'POINT', 2, 'COMMA')}">Peças</p>
+        <p class="os-total" th:if="${os.status.name() != 'AGUARDANDO_PRECIFICACAO'}"
+           th:text="${'Total previsto: R$ ' + #numbers.formatDecimal(total, 1, 'POINT', 2, 'COMMA')}">Total</p>
+        <p class="muted" th:if="${os.veiculo.previsaoEntrega != null}" th:text="${'Previsão de entrega: ' + #temporals.format(os.veiculo.previsaoEntrega, 'dd/MM/yyyy')}">Previsão</p>
+        <form th:if="${gestao and os.status.name() == 'AGUARDANDO_PRECIFICACAO'}"
+              th:action="@{/ordens/{id}/orcamentos/{o}/precos(id=${os.id},o=${orcamento.id})}" method="post">
+            <h3>Gerente — definir valores</h3><div class="os-pricing" th:each="item : ${itens}">
+                <input type="hidden" name="itemIds" th:value="${item.id}">
+                <label th:for="${'valor-' + item.id}" th:text="${(item.tipo.name() == 'PECA' ? item.peca.nome + ' — ' + item.descricao : 'Mão de obra — ' + item.descricao) + ' · ' + item.quantidade + ' un.'}">Item</label>
+                <input th:id="${'valor-' + item.id}" name="valores" type="number" step="0.01" min="0" max="99999999.99" required placeholder="Preço unitário (R$)">
+            </div><button type="submit" class="btn btn-primary">Salvar preços</button>
+        </form>
+        <form th:if="${gestao and os.status.name() == 'AGUARDANDO_APROVACAO_GERENTE'}"
+              th:action="@{/ordens/{id}/orcamentos/{o}/aprovar-gerente(id=${os.id},o=${orcamento.id})}" method="post">
+            <h3>Aprovação interna</h3><p class="muted">O gerente define a previsão de entrega ao aprovar o orçamento.</p>
+            <label for="previsaoEntrega">Previsão de entrega</label>
+            <input id="previsaoEntrega" name="previsaoEntrega" type="date" required>
+            <button class="btn btn-primary" type="submit">Aprovar orçamento e encaminhar ao cliente</button>
+        </form>
+        <form th:if="${podeResponder and os.status.name() == 'AGUARDANDO_CLIENTE'}"
+              th:action="@{/ordens/{id}/orcamentos/{o}/resposta-cliente(id=${os.id},o=${orcamento.id})}" method="post">
+            <h3>Resposta do cliente — contato via WhatsApp</h3>
+            <p class="muted">A assistente realiza o contato. Qualquer usuário autorizado à OS pode registrar a resposta, identificando quem conversou com o cliente.</p>
+            <div class="form-grid">
+                <div><label for="contatoPorUsuarioId">Assistente responsável pelo contato</label><select id="contatoPorUsuarioId" name="contatoPorUsuarioId" required>
+                    <option value="">Selecione...</option><option th:each="f : ${assistentes}" th:value="${f.usuario.id}" th:text="${f.nome}">Nome</option>
+                </select></div>
+                <div><label for="decisao">Resposta do cliente</label><select id="decisao" name="decisao" required>
+                    <option value="">Selecione...</option><option value="APROVADO">Aprovou</option><option value="ALTERACAO">Solicitou alteração</option><option value="RECUSADO">Recusou</option>
+                </select></div>
+            </div>
+            <label for="observacao">Observações do contato</label>
+            <textarea id="observacao" name="observacao" rows="3" maxlength="500" placeholder="Ex.: cliente aprovou os serviços pelo WhatsApp..."></textarea>
+            <button type="submit" class="btn btn-primary">Registrar resposta do cliente</button>
+        </form>
+    </section>
+    <section class="card os-panel" th:if="${gestao and os.status.name() == 'ORCAMENTO_RECUSADO'}">
+        <h2>Orçamento recusado — negociar nova proposta</h2>
+        <p>A versão recusada continua no histórico. Retome a avaliação para criar uma nova versão.</p>
+        <form th:action="@{/ordens/{id}/reabrir-recusa(id=${os.id})}" method="post">
+            <button type="submit" class="btn btn-primary">Retomar avaliação e gerar nova proposta</button>
+        </form>
+    </section>
+    <section class="card os-panel" th:if="${podeCorrigirEtapas}">
+        <h2>Admin Master — correções da OS</h2>
+        <p class="muted">Correções exigem um motivo e geram auditoria. Se o cliente já respondeu um orçamento, a versão permanece intacta: a OS volta para revisão e uma nova proposta deve ser criada.</p>
+        <details class="os-admin-details">
+            <summary>Editar dados da abertura</summary>
+            <form th:action="@{/ordens/{id}/corrigir-abertura(id=${os.id})}" method="post">
+                <label for="adminClienteId">Cliente</label>
+                <select name="clienteId" id="adminClienteId" required>
+                    <option th:each="c : ${clientes}" th:value="${c.id}" th:text="${c.nome}" th:selected="${c.id == os.veiculo.cliente.id}"></option>
+                </select>
+                <label for="adminPlaca">Placa do veículo</label>
+                <select name="placa" id="adminPlaca" required>
+                    <option th:each="v : ${veiculos}" th:value="${v.placa}" th:text="${v.placa + ' — ' + v.marca + ' ' + v.modelo}"
+                            th:attr="data-cliente=${v.cliente.id}" th:selected="${v.id == os.veiculo.id}"></option>
+                </select>
+                <p class="muted">A troca de veículo é permitida antes do primeiro orçamento. Depois disso, preserve o histórico criando uma nova OS para outro veículo.</p>
+                <label for="adminProblema">Problema relatado</label>
+                <textarea id="adminProblema" name="problema" rows="3" maxlength="4000" required th:text="${os.problema}"></textarea>
+                <label for="motivoAbertura">Motivo da correção</label>
+                <input id="motivoAbertura" name="motivo" required maxlength="350" placeholder="Ex.: descrição inicial registrada incorretamente">
+                <button type="submit" class="btn btn-primary">Salvar correção da abertura</button>
+            </form>
+        </details>
+        <details class="os-admin-details">
+            <summary>Retornar a uma etapa anterior</summary>
+            <form th:action="@{/ordens/{id}/corrigir-etapa(id=${os.id})}" method="post">
+                <label for="etapaCorrecao">Etapa a corrigir</label>
+                <select id="etapaCorrecao" name="etapa" required>
+                    <option value="">Selecione a etapa...</option>
+                    <option value="ABERTURA">Abertura / Designação</option>
+                    <option value="AVALIACAO">Diagnóstico e itens</option>
+                    <option value="PRECIFICACAO">Precificação</option>
+                    <option value="APROVACAO_GERENTE">Aprovação interna</option>
+                    <option value="RESPOSTA_CLIENTE">Contato / resposta do cliente</option>
+                </select>
+                <label for="motivoEtapa">Motivo da correção</label>
+                <input id="motivoEtapa" name="motivo" maxlength="350" required placeholder="Ex.: cliente solicitou correção de itens">
+                <button type="submit" class="btn btn-primary">Retornar etapa com auditoria</button>
+            </form>
+        </details>
+        <p class="muted">Etapas de execução, pagamento, retirada e encerramento exigirão regras de estorno próprias; não podem ser revertidas por este formulário.</p>
+    </section>
+    <section class="card os-panel" th:if="${!#lists.isEmpty(historico)}">
+        <h2>Histórico de orçamentos</h2><p class="muted">As versões anteriores permanecem registradas.</p>
+        <div class="os-history" th:each="h : ${historico}"><strong th:text="${rotulosOrcamentos[h.id]}">Proposta</strong>
+            <span th:text="${h.decisaoCliente}">Pendente</span><span th:text="${h.aprovadoGerente ? 'Gerente aprovou' : 'Aguardando aprovação interna'}">Situação</span>
+            <span th:if="${h.contatoPorUsuario != null}" th:text="${'Contato: ' + (nomesContatos[h.contatoPorUsuario.id] ?: 'Funcionário não vinculado')}">Responsável</span>
+            <span th:if="${h.dataContato != null}" th:text="${#temporals.format(h.dataContato, 'dd/MM/yyyy HH:mm')}">Data</span>
+        </div>
+    </section>
+    <section class="card os-panel" th:if="${os.status.name() == 'AGUARDANDO_PECAS'}">
+        <h2>Peças pendentes</h2>
+        <p>O cliente aprovou a proposta. A gestão deve registrar a compra/entrada das peças no módulo de estoque antes da execução.</p>
+        <form th:if="${gestao}" th:action="@{/ordens/{id}/liberar-pecas(id=${os.id})}" method="post">
+            <button type="submit" class="btn btn-primary">Verificar estoque e liberar execução</button>
+        </form>
+    </section>
+    <section class="card os-panel" th:if="${os.status.name() == 'AGUARDANDO_EXECUCAO'}">
+        <h2>Execução liberada</h2>
+        <p>O orçamento foi aprovado pelo cliente. Confira acima os serviços, as peças cadastradas e os valores antes de iniciar.</p>
+        <form th:if="${podeExecutar}" th:action="@{/ordens/{id}/iniciar-execucao(id=${os.id})}" method="post">
+            <button type="submit" class="btn btn-primary">Iniciar execução da OS</button>
+        </form>
+        <p th:unless="${podeExecutar}" class="muted">Aguardando início pelo mecânico designado.</p>
+    </section>
+    <section class="card os-panel" th:if="${os.status.name() == 'EM_ANDAMENTO'}">
+        <h2>Execução do reparo</h2>
+        <p class="muted">Somente o mecânico responsável e a gestão podem atualizar a execução. Os itens são os da proposta aprovada pelo cliente.</p>
+        <h3>Andamento de cada serviço / Mão de obra</h3>
+        <div class="tabela" th:if="${!#lists.isEmpty(servicosOrcados)}"><table>
+            <thead><tr><th>Serviço</th><th>Quantidade</th><th>Status</th><th>Ação</th></tr></thead>
+            <tbody><tr th:each="item : ${servicosOrcados}">
+                <td th:text="${item.descricao}">Serviço</td>
+                <td th:text="${item.quantidade}">1</td>
+                <td th:text="${progressoPorItem[item.id] == null ? 'Aguardando início' : progressoPorItem[item.id].status.rotulo}">Pendente</td>
+                <td>
+                    <form th:if="${podeExecutar and progressoPorItem[item.id] != null and progressoPorItem[item.id].status.name() != 'CONCLUIDO'}"
+                          th:action="@{/ordens/{id}/servicos/{itemId}/status(id=${os.id},itemId=${item.id})}" method="post">
+                        <input type="hidden" name="status"
+                               th:value="${progressoPorItem[item.id].status.name() == 'PENDENTE' ? 'EM_ANDAMENTO' : 'CONCLUIDO'}">
+                        <button type="submit" class="btn btn-primary"
+                                th:text="${progressoPorItem[item.id].status.name() == 'PENDENTE' ? 'Iniciar serviço' : 'Concluir serviço'}">Avançar</button>
+                    </form>
+                    <span th:if="${progressoPorItem[item.id] != null and progressoPorItem[item.id].status.name() == 'CONCLUIDO'}">Concluído</span>
+                </td>
+            </tr></tbody></table></div>
+        <p th:if="${#lists.isEmpty(servicosOrcados)}" class="muted">A proposta não contém serviços de mão de obra.</p>
+        <h3>Peças a utilizar</h3>
+        <div class="tabela" th:if="${!#lists.isEmpty(pecasOrcadas)}"><table>
+            <thead><tr><th>Nome da peça</th><th>Descrição</th><th>Quantidade aprovada</th><th>Quantidade consumida na OS</th></tr></thead>
+            <tbody><tr th:each="item : ${pecasOrcadas}">
+                <td th:text="${item.peca.nome}">Peça</td>
+                <td th:text="${item.descricao}">Aplicação</td>
+                <td th:text="${item.quantidade}">1</td>
+                <td th:text="${pecasConsumidas[item.peca.id] ?: 0}">0</td>
+            </tr></tbody></table></div>
+        <p th:if="${#lists.isEmpty(pecasOrcadas)}" class="muted">Não existem peças para consumir nesta proposta.</p>
+        <form th:if="${podeExecutar and !#lists.isEmpty(pecasOrcadas)}"
+              th:action="@{/ordens/{id}/registrar-uso-pecas(id=${os.id})}" method="post">
+            <button type="submit" class="btn">Registrar utilização de peças aprovadas</button>
+        </form>
+        <p class="muted">A utilização efetiva gera baixa no estoque. Repetir o registro não gera uma segunda baixa.</p>
+        <form th:if="${podeExecutar}" th:action="@{/ordens/{id}/concluir-execucao(id=${os.id})}" method="post">
+            <button type="submit" class="btn btn-primary">Concluir execução técnica da OS</button>
+        </form>
+        <p class="muted">O sistema bloqueia a conclusão até que todos os serviços estejam concluídos e todas as peças aprovadas sejam registradas.</p>
+    </section>
+    <section class="card os-panel" th:if="${os.status.name() == 'CONCLUIDA'}">
+        <h2>Execução técnica concluída</h2>
+        <p>Serviços concluídos e peças efetivamente consumidas. O valor da mão de obra foi registrado na OS.</p>
+        <p>O gerente ou Admin Master confirma a conclusão técnica para liberar a etapa de pagamento.</p>
+        <form th:if="${gestao}" th:action="@{/ordens/{id}/liberar-pagamento(id=${os.id})}" method="post">
+            <button type="submit" class="btn btn-primary">Liberar pagamento</button>
+        </form>
+        <p th:unless="${gestao}" class="muted">Aguardando liberação do pagamento pela gestão.</p>
+    </section>
+    <section class="card os-panel" th:if="${os.status.name() == 'ORCAMENTO_RECUSADO'}">
+        <h2>Próxima etapa</h2><p>Orçamento recusado. A gestão pode retomar a avaliação para criar outra proposta.</p>
+    </section>
+
+    <!-- O pagamento não muda o orçamento: registra o valor final calculado na OS. -->
+    <section class="card os-panel" th:if="${os.status.name() == 'AGUARDANDO_PAGAMENTO'}">
+        <h2>Pagamento</h2>
+        <p>Execução concluída. A recepção pode registrar o pagamento integral da Ordem de Serviço.</p>
+        <p><strong>Total devido: R$ <span th:text="${#numbers.formatDecimal(os.valorTotal, 1, 2)}">0,00</span></strong></p>
+        <form th:if="${podeRecepcao}" th:action="@{/ordens/{id}/pagamento(id=${os.id})}"
+              method="post" enctype="multipart/form-data">
+            <label for="formaPagamento">Forma de pagamento</label>
+            <select id="formaPagamento" name="forma" required>
+                <option value="">Selecione...</option>
+                <option th:each="forma : ${formasPagamento}" th:value="${forma.name()}" th:text="${forma.rotulo}">Pix</option>
+            </select>
+            <label for="comprovante">Comprovante (PDF, PNG ou JPG — até 3 MB)</label>
+            <input id="comprovante" name="comprovante" type="file" accept=".pdf,.png,.jpg,.jpeg,application/pdf,image/png,image/jpeg">
+            <p class="muted">Obrigatório para Pix, cartões ou transferência. Opcional para dinheiro.</p>
+            <label for="observacaoPagamento">Observações (opcional)</label>
+            <textarea id="observacaoPagamento" name="observacao" maxlength="500" rows="2"
+                      placeholder="Ex.: pagamento confirmado na maquininha"></textarea>
+            <button class="btn btn-primary" type="submit">Confirmar pagamento</button>
+        </form>
+        <p th:unless="${podeRecepcao}" class="muted">Somente recepção ou gestão pode registrar pagamentos.</p>
+    </section>
+    <section class="card os-panel" th:if="${pagamento != null}">
+        <h2>Pagamento registrado</h2>
+        <p><strong>Valor:</strong> R$ <span th:text="${#numbers.formatDecimal(pagamento.valor, 1, 2)}">0,00</span>
+            <strong> | Forma:</strong> <span th:text="${pagamento.formaPagamento.rotulo}">Pix</span></p>
+        <p><strong>Registrado em:</strong> <span th:text="${#temporals.format(pagamento.pagoEm, 'dd/MM/yyyy HH:mm')}">Data</span></p>
+        <p th:if="${pagamento.observacao != null}" th:text="${pagamento.observacao}">Observação</p>
+        <a th:if="${pagamento.comprovanteDados != null}"
+           th:href="@{/ordens/{id}/pagamento/comprovante(id=${os.id})}" class="btn">Baixar comprovante</a>
+    </section>
+    <section class="card os-panel" th:if="${os.status.name() == 'AGUARDANDO_RETIRADA'}">
+        <h2>Retirada do veículo</h2>
+        <p>Pagamento confirmado. Identifique quem está retirando o veículo.</p>
+        <form th:if="${podeRecepcao}" th:action="@{/ordens/{id}/retirada(id=${os.id})}" method="post">
+            <label for="nomeRetirante">Nome de quem retirou</label>
+            <input id="nomeRetirante" type="text" name="nomeRetirante" maxlength="120" required
+                   th:value="${os.veiculo.cliente.nome}">
+            <label for="observacaoRetirada">Observações (opcional)</label>
+            <textarea id="observacaoRetirada" name="observacao" maxlength="500" rows="2"
+                      placeholder="Ex.: retirada confirmada com o cliente"></textarea>
+            <button type="submit" class="btn btn-primary">Confirmar retirada do veículo</button>
+        </form>
+        <p th:unless="${podeRecepcao}" class="muted">Aguardando confirmação da recepção.</p>
+    </section>
+    <section class="card os-panel" th:if="${retirada != null}">
+        <h2>Veículo retirado</h2>
+        <p><strong>Retirado por:</strong> <span th:text="${retirada.nomeRetirante}">Cliente</span></p>
+        <p><strong>Data:</strong> <span th:text="${#temporals.format(retirada.retiradoEm, 'dd/MM/yyyy HH:mm')}">Data</span></p>
+        <p th:if="${retirada.observacao != null}" th:text="${retirada.observacao}">Observação</p>
+    </section>
+    <section class="card os-panel" th:if="${os.status.name() == 'VEICULO_RETIRADO'}">
+        <h2>Encerramento administrativo</h2>
+        <p>O pagamento e a retirada foram registrados. A gestão pode encerrar definitivamente esta OS.</p>
+        <form th:if="${gestao}" th:action="@{/ordens/{id}/encerrar(id=${os.id})}" method="post">
+            <button type="submit" class="btn btn-primary">Encerrar Ordem de Serviço</button>
+        </form>
+        <p th:unless="${gestao}" class="muted">Aguardando encerramento pelo Gerente ou Admin Master.</p>
+    </section>
+    <section class="card os-panel" th:if="${os.status.name() == 'ENCERRADA'}">
+        <h2>Ordem de Serviço encerrada</h2>
+        <p>Atendimento finalizado. Pagamento, retirada e histórico foram preservados.</p>
+    </section>
+</main>
+<script th:src="@{/js/ordens.js}" defer></script>
+<link rel="stylesheet" th:href="@{/css/ordens.css}">
+</body></html>

@@ -12,6 +12,7 @@
     <a class="brand" th:href="@{/}">Oficina Mecânica</a>
     <nav class="menu" sec:authorize="isAuthenticated()">
         <a th:href="@{/veiculos}">Veículos</a>
+        <a th:href="@{/ordens}" sec:authorize="hasAnyRole('ADMIN_MASTER','GERENTE','MECANICO','ASSISTENTE_ADMINISTRATIVO')">Ordens de Serviço</a>
         <a th:href="@{/clientes}" sec:authorize="hasAnyRole('ADMIN_MASTER','GERENTE','ASSISTENTE_ADMINISTRATIVO')">Clientes</a>
         <a th:href="@{/funcionarios}" sec:authorize="hasAnyRole('ADMIN_MASTER','GERENTE')">Funcionários</a>
     </nav>

@@ -14,6 +14,7 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -41,13 +42,16 @@ public class OrdemServicoApiController {
     public record AtribuirRequest(@NotNull Long funcionarioId) { }
     public record AvaliacaoRequest(@NotNull List<FluxoOrdemServicoService.ItemAvaliacao> itens) { }
     public record PrecosRequest(@NotNull List<FluxoOrdemServicoService.PrecoItem> itens) { }
+    public record AprovarOrcamentoRequest(@NotNull LocalDate previsaoEntrega) { }
     public record RespostaRequest(@NotNull DecisaoCliente decisao, @NotNull Long contatoPorUsuarioId,
                                   String observacao) { }
 
-    public record OsResposta(Long id, String numero, Long veiculoId, Long mecanicoId, StatusOs status) {
+    public record OsResposta(Long id, String numero, Long veiculoId, Long mecanicoId,
+                             StatusOs status, LocalDateTime previsaoEntrega) {
         static OsResposta de(OrdemServico os) {
             return new OsResposta(os.getId(), os.getNumero(), os.getVeiculo().getId(),
-                    os.getFuncionario() == null ? null : os.getFuncionario().getId(), os.getStatus());
+                    os.getFuncionario() == null ? null : os.getFuncionario().getId(), os.getStatus(),
+                    os.getVeiculo().getPrevisaoEntrega());
         }
     }
     public record OrcamentoResposta(Long id, Long osId, Integer versao, boolean aprovadoGerente,
@@ -118,8 +122,9 @@ public class OrdemServicoApiController {
 
     @PostMapping("/{id}/orcamentos/{orcamentoId}/aprovar-gerente")
     public OrcamentoResposta aprovarGerente(@PathVariable Long id, @PathVariable Long orcamentoId,
+                                           @Valid @RequestBody AprovarOrcamentoRequest request,
                                            @AuthenticationPrincipal UsuarioPrincipal ator) {
-        return OrcamentoResposta.de(fluxo.aprovarGerente(id, orcamentoId, ator));
+        return OrcamentoResposta.de(fluxo.aprovarGerente(id, orcamentoId, request.previsaoEntrega(), ator));
     }
 
     @PostMapping("/{id}/orcamentos/{orcamentoId}/resposta-cliente")

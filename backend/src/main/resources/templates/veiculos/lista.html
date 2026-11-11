@@ -6,47 +6,34 @@
 <main class="container">
     <div th:replace="~{fragments/layout :: flash}"></div>
     <div class="linha">
-        <h1>Veículos</h1>
+        <div><h1>Veículos</h1><p class="muted">Cadastro dos veículos e seus proprietários.</p></div>
         <a class="btn btn-primary" th:href="@{/veiculos/novo}" sec:authorize="hasAnyRole('ADMIN_MASTER','GERENTE','ASSISTENTE_ADMINISTRATIVO')">Novo veículo</a>
-    </div>
-    <div class="filtros">
-        <a class="btn btn-sm" th:classappend="${!todos} ? 'btn-primary'" th:href="@{/veiculos}">Na oficina (fila por chegada)</a>
-        <a class="btn btn-sm" th:classappend="${todos} ? 'btn-primary'" th:href="@{/veiculos(todos=true)}">Todos, com entregues</a>
     </div>
     <form class="busca" th:action="@{/veiculos}" method="get">
         <input type="search" name="q" th:value="${q}" placeholder="Buscar por placa ou modelo">
-        <input type="hidden" name="todos" th:value="${todos}">
         <button class="btn" type="submit">Buscar</button>
     </form>
-    <p class="muted">Os veículos há mais tempo na oficina aparecem primeiro.</p>
-    <div class="tabela">
-        <table>
-            <thead>
-            <tr><th>Placa</th><th>Veículo</th><th>Cliente</th><th>Status</th><th>Chegada</th><th>Dias</th><th>Previsão</th><th>Ações</th></tr>
-            </thead>
-            <tbody>
-            <tr th:each="v : ${veiculos}">
-                <td><a th:href="@{/veiculos/{i}(i=${v.id})}" th:text="${v.placa}">ABC1D23</a></td>
-                <td th:text="${v.marca + ' ' + v.modelo + ' ' + v.ano}">Marca Modelo 2020</td>
-                <td th:text="${v.cliente.nome}">Cliente</td>
-                <td><span th:replace="~{fragments/layout :: statusVeiculo(${v})}"></span></td>
-                <td th:text="${#temporals.format(v.dataEntrada, 'dd/MM/yyyy HH:mm')}">01/01/2026 08:00</td>
-                <td th:text="${v.diasNaOficina}">0</td>
-                <td th:text="${#temporals.format(v.previsaoEntrega, 'dd/MM/yyyy')}">01/01/2026</td>
-                <td><div class="acoes">
-                    <a class="btn btn-sm" th:href="@{/veiculos/{i}(i=${v.id})}">Detalhes</a>
-                    <a class="btn btn-sm" th:href="@{/veiculos/{i}/editar(i=${v.id})}"
-                       sec:authorize="hasAnyRole('ADMIN_MASTER','GERENTE','ASSISTENTE_ADMINISTRATIVO')">Editar</a>
-                    <form th:action="@{/veiculos/{i}/excluir(i=${v.id})}" method="post"
-                          data-confirm="Excluir este veículo?" sec:authorize="hasAnyRole('ADMIN_MASTER','GERENTE')">
-                        <button type="submit" class="btn btn-sm btn-perigo">Excluir</button>
-                    </form>
-                </div></td>
-            </tr>
-            <tr th:if="${#lists.isEmpty(veiculos)}"><td colspan="8" class="muted">Nenhum veículo encontrado.</td></tr>
-            </tbody>
-        </table>
+    <div class="tabela"><table>
+        <thead><tr><th>Placa</th><th>Marca</th><th>Modelo</th><th>Ano</th><th>Cor</th><th>Quilometragem</th><th>Proprietário</th><th>Ações</th></tr></thead>
+        <tbody>
+        <tr th:each="v : ${veiculos}">
+            <td><strong th:text="${v.placa}">ABC1D23</strong></td>
+            <td th:text="${v.marca}">Chevrolet</td>
+            <td th:text="${v.modelo}">Onix</td>
+            <td th:text="${v.ano != null ? v.ano : '—'}">2020</td>
+            <td th:text="${v.cor != null ? v.cor : '—'}">Prata</td>
+            <td th:text="${v.quilometragem != null ? v.quilometragem : '—'}">45000</td>
+            <td th:text="${v.cliente.nome}">Cliente</td>
+            <td><div class="acoes">
+                <a class="btn btn-sm" th:href="@{/veiculos/{i}/editar(i=${v.id})}" sec:authorize="hasAnyRole('ADMIN_MASTER','GERENTE','ASSISTENTE_ADMINISTRATIVO')">Editar</a>
+                <form th:action="@{/veiculos/{i}/excluir(i=${v.id})}" method="post" data-confirm="Excluir veículo?" sec:authorize="hasAnyRole('ADMIN_MASTER','GERENTE')">
+                    <button type="submit" class="btn btn-sm btn-perigo">Excluir</button>
+                </form>
+            </div></td>
+        </tr>
+        <tr th:if="${#lists.isEmpty(veiculos)}"><td colspan="8" class="muted">Nenhum veículo cadastrado.</td></tr>
+        </tbody></table>
     </div>
+    <p class="muted">Atendimentos, prazos e status de reparo são acompanhados no módulo <a th:href="@{/ordens}">Ordens de Serviço</a>.</p>
 </main>
-</body>
-</html>
+</body></html>

@@ -47,18 +47,8 @@
                     <input type="number" min="0" th:field="*{quilometragem}">
                     <div class="campo-erro" th:if="${#fields.hasErrors('quilometragem')}" th:errors="*{quilometragem}"></div>
                 </div>
-                <div>
-                    <label for="dataEntrada">Data e hora de chegada na oficina</label>
-                    <input type="datetime-local" th:field="*{dataEntrada}">
-                    <div class="campo-erro" th:if="${#fields.hasErrors('dataEntrada')}" th:errors="*{dataEntrada}"></div>
-                </div>
-                <div>
-                    <label for="previsaoEntrega">Previsão de entrega</label>
-                    <input type="date" th:field="*{previsaoEntrega}">
-                    <div class="campo-erro" th:if="${#fields.hasErrors('previsaoEntrega')}" th:errors="*{previsaoEntrega}"></div>
-                </div>
             </div>
-            <p class="muted" th:if="${id != null}">O status do veículo é alterado na tela de detalhes, seguindo a ordem das etapas.</p>
+            <p class="muted">O diagnóstico, os serviços e a previsão de entrega serão informados na Ordem de Serviço.</p>
             <div class="acoes">
                 <button type="submit" class="btn btn-primary">Salvar</button>
                 <a class="btn" th:href="@{/veiculos}">Cancelar</a>

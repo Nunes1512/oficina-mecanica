@@ -40,7 +40,7 @@
             <div><strong>Cliente</strong><br><span th:text="${veiculo.cliente.nome}">Cliente</span></div>
             <div><strong>Chegada na oficina</strong><br><span th:text="${#temporals.format(veiculo.dataEntrada, 'dd/MM/yyyy HH:mm')}">01/01/2026</span></div>
             <div><strong>Dias na oficina</strong><br><span th:text="${veiculo.diasNaOficina}">0</span></div>
-            <div><strong>Previsão de entrega</strong><br><span th:text="${#temporals.format(veiculo.previsaoEntrega, 'dd/MM/yyyy')}">01/01/2026</span></div>
+            <div><strong>Previsão de entrega</strong><br><span th:text="${veiculo.previsaoEntrega == null ? 'A definir após aprovação do orçamento' : #temporals.format(veiculo.previsaoEntrega, 'dd/MM/yyyy')}">01/01/2026</span></div>
             <div><strong>Entregue em</strong><br><span th:text="${#temporals.format(veiculo.dataEntrega, 'dd/MM/yyyy HH:mm')}">—</span></div>
             <div><strong>Ano</strong><br><span th:text="${veiculo.ano}">2020</span></div>
             <div><strong>Cor</strong><br><span th:text="${veiculo.cor}">Cor</span></div>

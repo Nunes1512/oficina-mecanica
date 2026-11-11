@@ -1,0 +1,33 @@
+.os-panel { margin-bottom: 1.15rem; padding: 1.3rem 1.5rem; }
+.os-panel h2 { margin-top: 0; }
+.os-panel p.muted { line-height: 1.5; }
+.os-info-grid, .os-detail-grid { margin-top: 1rem; display: grid; grid-template-columns: repeat(auto-fit,minmax(170px,1fr)); gap: .75rem; }
+.os-info-grid>div,.os-detail-grid>div { background: #f4f7fb; border: 1px solid #dde6f1; border-radius: 8px; padding: .7rem .8rem; }
+.os-info-grid small,.os-detail-grid small { display:block;color: #526477;font-weight:600;margin-bottom:.3rem; }
+.os-info-grid strong,.os-detail-grid span { display:block;overflow-wrap:anywhere; }
+.os-actions {display:flex;align-items:center;justify-content:space-between;gap:.75rem;flex-wrap:wrap;margin-top:1.2rem;}
+.os-two { display:grid;grid-template-columns:repeat(auto-fit,minmax(310px,1fr));gap:1rem; }
+.os-status-line{display:flex;align-items:center;gap:1rem;margin:.6rem 0 1rem;flex-wrap:wrap;}
+.os-multiline{white-space:pre-wrap;overflow-wrap:anywhere;}
+.os-qtd{min-width:75px;width:95px;}
+.os-pricing{display:grid;grid-template-columns:minmax(200px,2fr) minmax(140px,1fr);gap:1rem;align-items:center;margin:.65rem 0;}
+.os-total{font-size:1.15rem;font-weight:700;text-align:right;}
+.os-history{display:flex;gap:1rem;align-items:center;flex-wrap:wrap;border-bottom:1px solid #e1e5ed;padding:.65rem 0;}
+.os-inline{display:flex;align-items:center;gap:.8rem;flex-wrap:wrap;}
+.os-inline select{flex:1;min-width:260px;}
+.os-panel input[type="search"]{max-width:450px;}
+.os-panel textarea{width:100%;}
+@media(max-width:700px){.os-panel{padding:1rem}.os-pricing{grid-template-columns:1fr}.os-panel .tabela{overflow-x:auto}}
+
+/* Correção Parte 4: linhas dinâmicas e painel administrativo. */
+.os-remove-item {white-space:nowrap;color:#9b1c1c;border:1px solid #dfb1b1;background:white;}
+.os-remove-item:hover {background:#fff0f0;}
+.os-admin-details {border:1px solid #dce5f0;border-radius:8px;padding:.8rem 1rem;margin:.85rem 0;}
+.os-admin-details summary {cursor:pointer;font-weight:700;}
+.os-admin-details form {display:grid;gap:.55rem;margin-top:1rem;}
+#itensAvaliacao input,#itensAvaliacao select {min-width:90px;}
+#itensAvaliacao .os-nao-aplica {opacity:.55;pointer-events:none;}
+
+.os-subtotal{font-weight:600;text-align:right;margin-top:.4rem;margin-bottom:1rem;}
+.os-panel .tabela th{white-space:nowrap;}
+.os-panel .tabela td{vertical-align:middle;}

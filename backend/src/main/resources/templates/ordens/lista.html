@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Ordens de Serviço')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: nav}"></header>
+<main class="container">
+    <div th:replace="~{fragments/layout :: flash}"></div>
+    <div class="linha"><div><h1>Ordens de Serviço</h1><p class="muted">Acompanhe avaliações, orçamentos e aprovações.</p></div>
+        <a th:if="${podeAbrir}" class="btn btn-primary" th:href="@{/ordens/nova}">Nova Ordem de Serviço</a>
+    </div>
+    <div class="card" th:if="${#lists.isEmpty(ordens)}"><p>Nenhuma Ordem de Serviço disponível para seu perfil.</p></div>
+    <div class="tabela" th:unless="${#lists.isEmpty(ordens)}">
+        <table><thead><tr><th>Número</th><th>Cliente</th><th>Veículo</th><th>Placa</th><th>Status</th><th>Mecânico</th><th>Abertura</th><th>Ações</th></tr></thead><tbody>
+            <tr th:each="os : ${ordens}">
+                <td><strong th:text="${os.numero}">OS-123</strong></td>
+                <td th:text="${os.veiculo.cliente.nome}">Cliente</td>
+                <td th:text="${os.veiculo.marca + ' ' + os.veiculo.modelo}">Veículo</td>
+                <td th:text="${os.veiculo.placa}">ABC1D23</td>
+                <td><span class="badge" th:text="${os.status.rotulo}">Aguardando avaliação</span></td>
+                <td th:text="${os.funcionario != null ? os.funcionario.nome : 'A definir'}">A definir</td>
+                <td th:text="${#temporals.format(os.dataAbertura, 'dd/MM/yyyy HH:mm')}">10/11/2026</td>
+                <td><a class="btn btn-sm" th:href="@{/ordens/{i}(i=${os.id})}">Abrir OS</a></td>
+            </tr>
+        </tbody></table>
+    </div>
+</main></body></html>

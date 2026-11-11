@@ -13,11 +13,8 @@ import com.oficina.repository.TimelineVeiculoRepository;
 import com.oficina.repository.VeiculoRepository;
 import com.oficina.security.UsuarioPrincipal;
 import com.oficina.util.Textos;
-import java.time.LocalDate;
-import java.time.LocalTime;
-import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
+import java.time.LocalDateTime;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
@@ -38,21 +35,13 @@ public class VeiculoService {
     private final OrdemServicoRepository ordens;
     private final AuditoriaService auditoria;
 
+    /** Tela Veículos é um cadastro, não mais fila de manutenção. */
     @Transactional(readOnly = true)
     public List<Veiculo> listar(String busca, boolean incluirEntregues) {
         String termo = Textos.limpar(busca);
-        List<Veiculo> base = termo == null
+        return termo == null
                 ? veiculos.findAllByOrderByDataEntradaDesc()
                 : veiculos.findByPlacaContainingIgnoreCaseOrModeloContainingIgnoreCaseOrderByDataEntradaDesc(termo, termo);
-
-        List<Veiculo> fila = new ArrayList<>(base.stream()
-                .filter(v -> v.getStatus() != StatusVeiculo.ENTREGUE)
-                .sorted(Comparator.comparing(Veiculo::getDataEntrada))
-                .toList());
-        if (incluirEntregues || termo != null) {
-            base.stream().filter(v -> v.getStatus() == StatusVeiculo.ENTREGUE).forEach(fila::add);
-        }
-        return fila;
     }
 
     @Transactional(readOnly = true)
@@ -74,6 +63,8 @@ public class VeiculoService {
         }
         Veiculo veiculo = new Veiculo();
         aplicar(veiculo, form, placa);
+        // Coluna legada NOT NULL: guardamos a data do cadastro sem expor chegada/manutenção aqui.
+        veiculo.setDataEntrada(LocalDateTime.now());
         veiculo.setStatus(StatusVeiculo.AGUARDANDO_ANALISE);
         return veiculos.save(veiculo);
     }
@@ -128,13 +119,6 @@ public class VeiculoService {
     }
 
     private void aplicar(Veiculo veiculo, VeiculoForm form, String placa) {
-        if (form.getDataEntrada() == null) {
-            throw new NegocioException("Informe a data de chegada.");
-        }
-        LocalDate previsao = form.getPrevisaoEntrega();
-        if (previsao != null && previsao.isBefore(form.getDataEntrada().toLocalDate())) {
-            throw new NegocioException("A previsão de entrega não pode ser anterior à data de chegada.");
-        }
         Cliente cliente = clientes.findById(form.getClienteId())
                 .orElseThrow(() -> new NegocioException("Cliente não encontrado."));
         veiculo.setMarca(form.getMarca().trim());
@@ -144,7 +128,7 @@ public class VeiculoService {
         veiculo.setPlaca(placa);
         veiculo.setQuilometragem(form.getQuilometragem());
         veiculo.setCliente(cliente);
-        veiculo.setDataEntrada(form.getDataEntrada());
-        veiculo.setPrevisaoEntrega(previsao == null ? null : previsao.atTime(LocalTime.of(23, 59)));
+        // A previsão de entrega é definida pela gestão quando aprova o orçamento;
+        // editar dados cadastrais do veículo nunca altera essa previsão.
     }
 }

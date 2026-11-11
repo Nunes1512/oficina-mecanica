@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Nova OS')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: nav}"></header>
+<main class="container">
+    <div th:replace="~{fragments/layout :: flash}"></div>
+    <div class="linha"><div><h1>Nova Ordem de Serviço</h1><p class="muted">Atendimento da recepção • Aguardando avaliação</p></div><a class="btn" th:href="@{/ordens}">Voltar</a></div>
+    <div class="alert alert-erro" th:if="${erro}" th:text="${erro}"></div>
+    <form class="os-form" th:action="@{/ordens}" method="post">
+        <section class="card os-panel">
+            <h2>1. Cliente</h2><p class="muted">Selecione o cliente que já está cadastrado na oficina.</p>
+            <label for="clienteId">Cliente cadastrado</label>
+            <select id="clienteId" name="clienteId" required>
+                <option value="">Selecione o cliente...</option>
+                <option th:each="c : ${clientes}" th:value="${c.id}" th:text="${c.nome + ' · ' + c.cpf}"
+                        th:attr="data-cpf=${c.cpf},data-telefone=${c.telefone},data-email=${c.email}"
+                        th:selected="${clienteSelecionado != null and c.id == clienteSelecionado}">Cliente</option>
+            </select>
+            <div class="os-info-grid"><div><small>CPF</small><strong id="clienteCpf">—</strong></div><div><small>Telefone</small><strong id="clienteTelefone">—</strong></div><div><small>E-mail</small><strong id="clienteEmail">—</strong></div></div>
+        </section>
+        <section class="card os-panel">
+            <h2>2. Veículo</h2><p class="muted">Digite ou selecione a placa de um veículo pertencente ao cliente.</p>
+            <label for="placa">Placa do veículo</label>
+            <input type="search" id="placa" name="placa" list="placasDoCliente" maxlength="9" autocomplete="off" placeholder="ABC1D23" th:value="${placaDigitada}" required>
+            <datalist id="placasDoCliente"></datalist>
+            <div class="os-info-grid"><div><small>Marca / Modelo</small><strong id="veiculoModelo">—</strong></div><div><small>Ano / Cor</small><strong id="veiculoAnoCor">—</strong></div><div><small>Quilometragem</small><strong id="veiculoKm">—</strong></div><div><small>Proprietário</small><strong id="veiculoProprietario">—</strong></div></div>
+            <p class="muted">Se o veículo não aparecer, cadastre-o primeiro no módulo <a th:href="@{/veiculos/novo}">Veículos</a>.</p>
+            <div id="cadastroVeiculos" hidden>
+                <span th:each="v : ${veiculos}" class="os-veiculo-data"
+                      th:attr="data-placa=${v.placa},data-cliente=${v.cliente.id},data-marca=${v.marca},data-modelo=${v.modelo},data-ano=${v.ano},data-cor=${v.cor},data-km=${v.quilometragem},data-proprietario=${v.cliente.nome}"></span>
+            </div>
+        </section>
+        <section class="card os-panel">
+            <h2>3. Problema relatado</h2><p class="muted">Registre o que o cliente relatou. Diagnóstico técnico e orçamento serão preenchidos depois.</p>
+            <label for="problema">Descrição do problema</label>
+            <textarea id="problema" name="problema" rows="5" maxlength="4000" required placeholder="Ex.: cliente relata vazamento de óleo após uso prolongado..." th:text="${problemaDigitado}"></textarea>
+            <div class="os-actions"><a class="btn" th:href="@{/ordens}">Cancelar</a><button type="submit" class="btn btn-primary">Abrir Ordem de Serviço</button></div>
+        </section>
+    </form>
+</main>
+<script th:src="@{/js/ordens.js}" defer></script>
+<link rel="stylesheet" th:href="@{/css/ordens.css}">
+</body></html>
