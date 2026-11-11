@@ -147,13 +147,19 @@ public class OrdemServicoController {
         boolean mecanicoResponsavel = ator.isMecanico() && os.getFuncionario() != null
                 && os.getFuncionario().getUsuario() != null
                 && os.getFuncionario().getUsuario().getId().equals(ator.getId());
-        model.addAttribute("pagamento", fechamento.consultarPagamento(id, ator).orElse(null));
-        model.addAttribute("retirada", fechamento.consultarRetirada(id, ator).orElse(null));
+        model.addAttribute("pagamento", (gestao || ator.isAssistente())
+                ? fechamento.consultarPagamento(id, ator).orElse(null) : null);
+        model.addAttribute("retirada", (gestao || ator.isAssistente())
+                ? fechamento.consultarRetirada(id, ator).orElse(null) : null);
         model.addAttribute("formasPagamento", FormaPagamentoOs.values());
         model.addAttribute("podeRecepcao", ator.isAssistente() || ator.isGerenteOuAdmin());
         model.addAttribute("os", os);
         model.addAttribute("orcamento", atual);
         model.addAttribute("historico", historico);
+        boolean osLegada = historico.isEmpty() && java.util.Set.of(
+                StatusOs.ABERTA, StatusOs.EM_ANDAMENTO, StatusOs.AGUARDANDO_PECAS,
+                StatusOs.CONCLUIDA).contains(os.getStatus());
+        model.addAttribute("osLegada", osLegada);
         model.addAttribute("nomesContatos", nomesContatos);
         model.addAttribute("itens", itens);
         model.addAttribute("servicosOrcados", servicos);
@@ -345,10 +351,21 @@ public class OrdemServicoController {
     }
 
     @PostMapping("/{id}/registrar-uso-pecas")
-    public String usarPecas(@PathVariable Long id, @AuthenticationPrincipal UsuarioPrincipal ator,
-                             RedirectAttributes redirect) {
+    public String usarPecas(@PathVariable Long id, @RequestParam List<Long> pecaIds,
+                             @RequestParam List<Integer> quantidades,
+                             @AuthenticationPrincipal UsuarioPrincipal ator, RedirectAttributes redirect) {
         try {
-            fluxo.registrarUsoPecas(id, ator);
+            if (pecaIds.size() != quantidades.size()) {
+                throw new NegocioException("Informe a quantidade de cada peça selecionada.");
+            }
+            java.util.Map<Long, Integer> porPeca = new java.util.HashMap<>();
+            for (int i = 0; i < pecaIds.size(); i++) {
+                Integer quantidade = quantidades.get(i);
+                if (pecaIds.get(i) == null || quantidade == null || quantidade < 0)
+                    throw new NegocioException("Quantidade de peça inválida.");
+                porPeca.merge(pecaIds.get(i), quantidade, Math::addExact);
+            }
+            fluxo.registrarUsoPecas(id, porPeca, ator);
             redirect.addFlashAttribute("sucesso", "Utilização de peças registrada no estoque.");
         } catch (NegocioException e) { redirect.addFlashAttribute("erro", e.getMessage()); }
         return "redirect:/ordens/" + id;
@@ -359,7 +376,7 @@ public class OrdemServicoController {
                                     RedirectAttributes redirect) {
         try {
             fluxo.concluirExecucao(id, ator);
-            redirect.addFlashAttribute("sucesso", "Execução concluída. Próxima etapa: pagamento e retirada (a implementar).");
+            redirect.addFlashAttribute("sucesso", "Execução concluída. A gestão deve liberar o pagamento.");
         } catch (NegocioException e) { redirect.addFlashAttribute("erro", e.getMessage()); }
         return "redirect:/ordens/" + id;
     }

@@ -6,10 +6,8 @@ import java.time.LocalDateTime;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import org.hibernate.annotations.JdbcTypeCode;
-import org.hibernate.type.SqlTypes;
 
-/** Pagamento integral de uma OS, sem sobrescrita posterior e sem cobrança duplicada. */
+/** Pagamento integral de uma OS; comprovante em LONGBLOB no MariaDB. */
 @Entity
 @Table(name = "pagamento_os")
 @Getter @Setter @NoArgsConstructor
@@ -44,7 +42,7 @@ public class PagamentoOs {
     @Column(name = "comprovante_mime", length = 40)
     private String comprovanteMime;
 
-    @JdbcTypeCode(SqlTypes.VARBINARY)
-    @Column(name = "comprovante_dados", columnDefinition = "bytea")
+    @Lob
+    @Column(name = "comprovante_dados", columnDefinition = "LONGBLOB")
     private byte[] comprovanteDados;
 }

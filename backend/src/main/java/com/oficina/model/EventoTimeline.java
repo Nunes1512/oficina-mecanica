@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 @Getter
 @RequiredArgsConstructor
 public enum EventoTimeline {
+    CADASTRO("Cadastro do veículo"),
     ENTRADA("Entrada na oficina"),
     DIAGNOSTICO("Diagnóstico"),
     SOLICITACAO_PECA("Solicitação de peça"),
@@ -14,6 +15,5 @@ public enum EventoTimeline {
     MUDANCA_STATUS("Mudança de status"),
     CONCLUSAO("Conclusão"),
     ENTREGA("Entrega ao cliente");
-
     private final String rotulo;
 }

@@ -1,0 +1,6 @@
+# Perfil de verificação de instalação limpa.
+# Execute com --spring.profiles.active=instalacao-limpa.
+# Impede que um banco parcialmente preenchido seja marcado como baseline V8.
+spring:
+  flyway:
+    baseline-on-migrate: false

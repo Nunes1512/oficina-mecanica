@@ -1,61 +1,42 @@
--- Ao remover um item da OS, devolve as peças ao estoque, registra o estorno no histórico
--- e recalcula o valor das peças da OS. Corrige a falha do V4, que só tratava o INSERT
-CREATE OR REPLACE FUNCTION fn_item_os_estorno_estoque() RETURNS trigger AS $$
+-- No MariaDB, recalcular por delta evita consultar a tabela item_os de dentro do próprio trigger.
+DELIMITER $$
+CREATE TRIGGER trg_item_os_estorno_estoque AFTER DELETE ON item_os
+FOR EACH ROW
 BEGIN
-    UPDATE peca SET quantidade = quantidade + OLD.quantidade WHERE id = OLD.peca_id;
+ UPDATE peca SET quantidade = quantidade + OLD.quantidade WHERE id = OLD.peca_id;
+ INSERT INTO movimentacao_estoque (peca_id,tipo,quantidade,os_id,observacao)
+ VALUES (OLD.peca_id,'ENTRADA',OLD.quantidade,OLD.os_id,
+         CONCAT('Estorno: item removido da OS ',OLD.os_id));
+ UPDATE ordem_servico
+    SET valor_pecas = valor_pecas - (OLD.quantidade * OLD.valor_unitario)
+  WHERE id = OLD.os_id;
+END $$
+DELIMITER ;
 
-    INSERT INTO movimentacao_estoque (peca_id, tipo, quantidade, observacao)
-    VALUES (OLD.peca_id, 'ENTRADA', OLD.quantidade, 'Estorno: item removido da OS ' || OLD.os_id);
-
-    UPDATE ordem_servico
-       SET valor_pecas = (SELECT COALESCE(SUM(quantidade * valor_unitario), 0)
-                            FROM item_os WHERE os_id = OLD.os_id)
-     WHERE id = OLD.os_id;
-
-    RETURN OLD;
-END $$ LANGUAGE plpgsql;
-
-CREATE TRIGGER trg_item_os_estorno_estoque
-AFTER DELETE ON item_os
-FOR EACH ROW EXECUTE FUNCTION fn_item_os_estorno_estoque();
-
--- Ao alterar a quantidade de um item da OS, ajusta o estoque pela diferença.
--- Trocar a peça ou a OS do item é proibido: o correto é remover e adicionar de novo
-CREATE OR REPLACE FUNCTION fn_item_os_ajusta_estoque() RETURNS trigger AS $$
-DECLARE
-    v_saldo INT;
-    v_dif   INT;
+DELIMITER $$
+CREATE TRIGGER trg_item_os_ajusta_estoque AFTER UPDATE ON item_os
+FOR EACH ROW
 BEGIN
-    IF NEW.peca_id <> OLD.peca_id OR NEW.os_id <> OLD.os_id THEN
-        RAISE EXCEPTION 'Não é permitido trocar a peça ou a OS de um item: remova e adicione novamente';
-    END IF;
-
-    v_dif := NEW.quantidade - OLD.quantidade;
-    IF v_dif = 0 THEN
-        RETURN NEW;
-    END IF;
-
+ DECLARE v_dif INT DEFAULT 0;
+ DECLARE v_saldo INT DEFAULT NULL;
+ IF NEW.peca_id <> OLD.peca_id OR NEW.os_id <> OLD.os_id THEN
+   SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT='Não é permitido trocar peça ou OS de um item';
+ END IF;
+ SET v_dif = NEW.quantidade - OLD.quantidade;
+ IF v_dif <> 0 THEN
     SELECT quantidade INTO v_saldo FROM peca WHERE id = NEW.peca_id FOR UPDATE;
-
-    IF v_dif > 0 AND v_saldo < v_dif THEN
-        RAISE EXCEPTION 'Estoque insuficiente para a peça % (saldo: %, necessário a mais: %)',
-            NEW.peca_id, v_saldo, v_dif;
+    IF v_saldo IS NULL OR (v_dif > 0 AND v_saldo < v_dif) THEN
+      SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT='Estoque insuficiente para ajuste da OS';
     END IF;
-
     UPDATE peca SET quantidade = quantidade - v_dif WHERE id = NEW.peca_id;
-
-    INSERT INTO movimentacao_estoque (peca_id, tipo, quantidade, os_id, observacao)
-    VALUES (NEW.peca_id, CASE WHEN v_dif > 0 THEN 'SAIDA' ELSE 'ENTRADA' END,
-            ABS(v_dif), NEW.os_id, 'Ajuste de quantidade do item na OS');
-
-    UPDATE ordem_servico
-       SET valor_pecas = (SELECT COALESCE(SUM(quantidade * valor_unitario), 0)
-                            FROM item_os WHERE os_id = NEW.os_id)
-     WHERE id = NEW.os_id;
-
-    RETURN NEW;
-END $$ LANGUAGE plpgsql;
-
-CREATE TRIGGER trg_item_os_ajusta_estoque
-AFTER UPDATE OF quantidade, peca_id, os_id, valor_unitario ON item_os
-FOR EACH ROW EXECUTE FUNCTION fn_item_os_ajusta_estoque();
+    INSERT INTO movimentacao_estoque (peca_id,tipo,quantidade,os_id,observacao)
+    VALUES (NEW.peca_id,IF(v_dif > 0,'SAIDA','ENTRADA'),ABS(v_dif),NEW.os_id,
+            'Ajuste de quantidade do item na OS');
+ END IF;
+ -- Corrige também alteração isolada de valor_unitario (QA-009).
+ UPDATE ordem_servico
+    SET valor_pecas = valor_pecas + (NEW.quantidade * NEW.valor_unitario)
+                                     - (OLD.quantidade * OLD.valor_unitario)
+  WHERE id = NEW.os_id;
+END $$
+DELIMITER ;

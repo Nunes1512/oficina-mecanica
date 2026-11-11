@@ -35,6 +35,8 @@ public class FechamentoOsService {
         OrdemServico os = bloquear(osId);
         if (os.getStatus() != StatusOs.CONCLUIDA)
             throw new NegocioException("A OS precisa estar tecnicamente concluída para liberar o pagamento.");
+        if (!ordens.temOrcamentoAprovado(osId, DecisaoCliente.APROVADO))
+            throw new NegocioException("OS histórica sem orçamento aprovado: não é possível liberar pagamento pelo fluxo novo.");
         if (pagamentos.existsByOsId(osId))
             throw new NegocioException("Esta OS já possui pagamento registrado.");
         os.setStatus(StatusOs.AGUARDANDO_PAGAMENTO);
@@ -119,18 +121,21 @@ public class FechamentoOsService {
 
     @Transactional(readOnly = true)
     public Optional<PagamentoOs> consultarPagamento(Long osId, UsuarioPrincipal ator) {
+        exigirRecepcaoOuGestao(ator);
         validarLeitura(osId, ator);
         return pagamentos.findByOsId(osId);
     }
 
     @Transactional(readOnly = true)
     public Optional<RetiradaOs> consultarRetirada(Long osId, UsuarioPrincipal ator) {
+        exigirRecepcaoOuGestao(ator);
         validarLeitura(osId, ator);
         return retiradas.findByOsId(osId);
     }
 
     @Transactional(readOnly = true)
     public Comprovante baixarComprovante(Long osId, UsuarioPrincipal ator) {
+        exigirRecepcaoOuGestao(ator);
         validarLeitura(osId, ator);
         PagamentoOs pagamento = pagamentos.findByOsId(osId)
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Pagamento não encontrado."));

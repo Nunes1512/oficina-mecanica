@@ -69,8 +69,9 @@ public class ExecucaoOrdemServicoApiController {
     }
 
     @PostMapping("/{id}/execucao/registrar-pecas")
-    public Estado registrarPecas(@PathVariable Long id, @AuthenticationPrincipal UsuarioPrincipal ator) {
-        return Estado.de(fluxo.registrarUsoPecas(id, ator));
+    public Estado registrarPecas(@PathVariable Long id, @RequestBody Map<Long, Integer> quantidades,
+                                @AuthenticationPrincipal UsuarioPrincipal ator) {
+        return Estado.de(fluxo.registrarUsoPecas(id, quantidades, ator));
     }
 
     @PostMapping("/{id}/execucao/concluir")

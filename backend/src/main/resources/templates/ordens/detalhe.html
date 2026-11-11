@@ -228,19 +228,29 @@
         <p th:if="${#lists.isEmpty(pecasOrcadas)}" class="muted">Não existem peças para consumir nesta proposta.</p>
         <form th:if="${podeExecutar and !#lists.isEmpty(pecasOrcadas)}"
               th:action="@{/ordens/{id}/registrar-uso-pecas(id=${os.id})}" method="post">
-            <button type="submit" class="btn">Registrar utilização de peças aprovadas</button>
+            <p class="muted">Informe somente a quantidade realmente utilizada nesta operação. O saldo aprovado é o limite máximo; use 0 para não consumir uma peça agora.</p>
+            <div th:each="item : ${pecasOrcadas}" class="os-pricing">
+                <input type="hidden" name="pecaIds" th:value="${item.peca.id}">
+                <label th:text="${item.peca.nome + ' — máximo aprovado: ' + item.quantidade}">Peça</label>
+                <input type="number" name="quantidades" min="0" th:max="${item.quantidade}" value="0" required>
+            </div>
+            <button type="submit" class="btn">Registrar uso efetivo de peças</button>
         </form>
-        <p class="muted">A utilização efetiva gera baixa no estoque. Repetir o registro não gera uma segunda baixa.</p>
+        <p class="muted">A baixa é feita apenas para a quantidade informada. A conclusão técnica continua exigindo a quantidade aprovada, ou revisão autorizada pela gestão antes da execução.</p>
         <form th:if="${podeExecutar}" th:action="@{/ordens/{id}/concluir-execucao(id=${os.id})}" method="post">
             <button type="submit" class="btn btn-primary">Concluir execução técnica da OS</button>
         </form>
         <p class="muted">O sistema bloqueia a conclusão até que todos os serviços estejam concluídos e todas as peças aprovadas sejam registradas.</p>
     </section>
+    <section class="card os-panel" th:if="${os.status.name() == 'ABERTA' or (historico.isEmpty() and (os.status.name() == 'EM_ANDAMENTO' or os.status.name() == 'AGUARDANDO_PECAS' or os.status.name() == 'CONCLUIDA'))}">
+        <h2>Atendimento legado — consulta histórica</h2>
+        <p>Esta OS foi criada antes do fluxo de orçamentos versionados. Seus dados permanecem para consulta, mas não é possível avançá-la pelas etapas atuais sem um orçamento aprovado. Para um novo atendimento, abra outra OS após encerrar administrativamente o registro legado.</p>
+    </section>
     <section class="card os-panel" th:if="${os.status.name() == 'CONCLUIDA'}">
         <h2>Execução técnica concluída</h2>
         <p>Serviços concluídos e peças efetivamente consumidas. O valor da mão de obra foi registrado na OS.</p>
         <p>O gerente ou Admin Master confirma a conclusão técnica para liberar a etapa de pagamento.</p>
-        <form th:if="${gestao}" th:action="@{/ordens/{id}/liberar-pagamento(id=${os.id})}" method="post">
+        <form th:if="${gestao and !osLegada}" th:action="@{/ordens/{id}/liberar-pagamento(id=${os.id})}" method="post">
             <button type="submit" class="btn btn-primary">Liberar pagamento</button>
         </form>
         <p th:unless="${gestao}" class="muted">Aguardando liberação do pagamento pela gestão.</p>
@@ -253,7 +263,7 @@
     <section class="card os-panel" th:if="${os.status.name() == 'AGUARDANDO_PAGAMENTO'}">
         <h2>Pagamento</h2>
         <p>Execução concluída. A recepção pode registrar o pagamento integral da Ordem de Serviço.</p>
-        <p><strong>Total devido: R$ <span th:text="${#numbers.formatDecimal(os.valorTotal, 1, 2)}">0,00</span></strong></p>
+        <p th:if="${gestao or podeRecepcao}"><strong>Total devido: R$ <span th:text="${#numbers.formatDecimal(os.valorTotal, 1, 2)}">0,00</span></strong></p>
         <form th:if="${podeRecepcao}" th:action="@{/ordens/{id}/pagamento(id=${os.id})}"
               method="post" enctype="multipart/form-data">
             <label for="formaPagamento">Forma de pagamento</label>

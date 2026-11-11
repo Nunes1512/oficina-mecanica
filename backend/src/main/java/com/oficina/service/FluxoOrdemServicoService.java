@@ -119,8 +119,17 @@ public class FluxoOrdemServicoService {
         if (problema == null || problema.isBlank() || problema.length() > 4000) {
             throw new NegocioException("Informe a descrição do problema (até 4.000 caracteres).");
         }
-        Veiculo veiculo = veiculos.findById(veiculoId)
+        // Serializa aberturas do mesmo carro e impede OS simultâneas, mesmo com duas recepções.
+        Veiculo veiculo = veiculos.bloquearParaAbertura(veiculoId)
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Veículo não encontrado."));
+        if (ordens.existeAtivaParaVeiculo(veiculoId,
+                EnumSet.of(StatusOs.ENCERRADA, StatusOs.CANCELADA), StatusOs.CONCLUIDA)) {
+            throw new NegocioException("Este veículo já possui uma OS em andamento ou aguardando encerramento.");
+        }
+        // Datas cadastrais resumem apenas a última visita; OS e retirada preservam as datas históricas.
+        veiculo.setDataEntrada(LocalDateTime.now());
+        veiculo.setDataEntrega(null);
+        veiculo.setStatus(com.oficina.model.StatusVeiculo.AGUARDANDO_ANALISE);
         OrdemServico os = new OrdemServico();
         os.setNumero("OS-" + UUID.randomUUID().toString().replace("-", "").substring(0, 12).toUpperCase());
         os.setVeiculo(veiculo);
@@ -542,58 +551,61 @@ public class FluxoOrdemServicoService {
         return execucao;
     }
 
-    /**
-     * Registra somente as peças restantes do orçamento aprovado. INSERT em item_os
-     * dispara o trigger existente de baixa de estoque; repetição não baixa duas vezes.
-     */
-    public OrdemServico registrarUsoPecas(Long osId, UsuarioPrincipal ator) {
+    /** Consumo explícito por peça, validado contra o restante aprovado e estoque disponível. */
+    public OrdemServico registrarUsoPecas(Long osId, Map<Long, Integer> quantidades,
+                                          UsuarioPrincipal ator) {
         OrdemServico os = bloquearOs(osId);
         validarMecanicoResponsavelOuGestao(os, ator);
-        if (os.getStatus() != StatusOs.EM_ANDAMENTO) {
+        if (os.getStatus() != StatusOs.EM_ANDAMENTO)
             throw new NegocioException("Inicie a execução antes de registrar peças utilizadas.");
-        }
+        if (quantidades == null || quantidades.isEmpty())
+            throw new NegocioException("Informe as peças e a quantidade realmente utilizada.");
         Orcamento aprovado = orcamentoClienteAprovou(os);
-        Map<Long, Integer> necessarias = new HashMap<>();
+        Map<Long, Integer> aprovadas = new HashMap<>();
         Map<Long, BigDecimal> precos = new HashMap<>();
         for (ItemOrcamento item : itens.findByOrcamentoIdOrderByIdAsc(aprovado.getId())) {
-            if (item.getTipo() == TipoItemOrcamento.PECA) {
-                Long pecaId = item.getPeca().getId();
-                // Se a mesma peça constar em itens diferentes com preços diferentes,
-                // a utilização exige consolidação comercial antes da execução.
-                BigDecimal anterior = precos.putIfAbsent(pecaId, item.getValorUnitario());
-                if (anterior != null && anterior.compareTo(item.getValorUnitario()) != 0) {
-                    throw new NegocioException("Peça repetida com preços distintos. Solicite correção do orçamento à gestão.");
-                }
-                necessarias.merge(pecaId, item.getQuantidade(), Math::addExact);
-            }
+            if (item.getTipo() != TipoItemOrcamento.PECA) continue;
+            Long id = item.getPeca().getId();
+            BigDecimal precoAnterior = precos.putIfAbsent(id, item.getValorUnitario());
+            if (precoAnterior != null && precoAnterior.compareTo(item.getValorUnitario()) != 0)
+                throw new NegocioException("Peça repetida com preços distintos: peça correção comercial.");
+            aprovadas.merge(id, item.getQuantidade(), Math::addExact);
         }
         Map<Long, Integer> consumidas = agruparConsumos(itensOs.findByOsIdOrderById(osId));
-        // Verifica todos os saldos ANTES de inserir qualquer consumo.
-        for (Map.Entry<Long, Integer> entrada : necessarias.entrySet()) {
-            int falta = entrada.getValue() - consumidas.getOrDefault(entrada.getKey(), 0);
-            if (falta < 0) throw new NegocioException("A OS já consumiu mais peças do que o orçamento permite.");
-            if (falta > 0) {
-                Peca peca = pecas.findById(entrada.getKey())
+        // Validar o conjunto inteiro antes de inserir alguma saída de estoque.
+        for (Map.Entry<Long, Integer> entrada : quantidades.entrySet()) {
+            Long id = entrada.getKey();
+            Integer quantidade = entrada.getValue();
+            if (id == null || quantidade == null || quantidade < 0 || !aprovadas.containsKey(id))
+                throw new NegocioException("Peça ou quantidade inválida para esta OS.");
+            int restante = aprovadas.get(id) - consumidas.getOrDefault(id, 0);
+            if (quantidade > restante)
+                throw new NegocioException("Uso de peça ultrapassa a quantidade aprovada ou já consumida.");
+            if (quantidade > 0) {
+                Peca peca = pecas.findById(id)
                         .orElseThrow(() -> new RecursoNaoEncontradoException("Peça não encontrada."));
-                if (peca.getQuantidade() < falta) {
-                    throw new NegocioException("Estoque insuficiente para " + peca.getNome() + ". Necessário: " + falta);
-                }
+                if (peca.getQuantidade() < quantidade)
+                    throw new NegocioException("Saldo insuficiente de " + peca.getNome() + ".");
             }
         }
-        for (Map.Entry<Long, Integer> entrada : necessarias.entrySet()) {
-            int falta = entrada.getValue() - consumidas.getOrDefault(entrada.getKey(), 0);
-            if (falta > 0) {
-                ItemOs registro = new ItemOs();
-                registro.setOs(os);
-                registro.setPeca(pecas.getReferenceById(entrada.getKey()));
-                registro.setQuantidade(falta);
-                registro.setValorUnitario(precos.get(entrada.getKey()));
-                itensOs.saveAndFlush(registro); // executa o trigger de estoque nesta transação
-            }
+        for (Map.Entry<Long, Integer> entrada : quantidades.entrySet()) {
+            if (entrada.getValue() == 0) continue;
+            ItemOs uso = new ItemOs();
+            uso.setOs(os);
+            uso.setPeca(pecas.getReferenceById(entrada.getKey()));
+            uso.setQuantidade(entrada.getValue());
+            uso.setValorUnitario(precos.get(entrada.getKey()));
+            itensOs.saveAndFlush(uso); // trigger faz a baixa sob transação
         }
         auditoria.registrar(ator, "CONSUMIR_PECAS", "ordem_servico", osId,
-                "Utilização registrada conforme orçamento #" + aprovado.getId());
+                "Uso real informado por peça, orçamento #" + aprovado.getId());
         return os;
+    }
+
+    /** Compatibilidade com clientes antigos: não permitir baixa integral sem quantidades explícitas. */
+    @Deprecated
+    public OrdemServico registrarUsoPecas(Long osId, UsuarioPrincipal ator) {
+        throw new NegocioException("Informe a quantidade efetivamente utilizada para cada peça.");
     }
 
     /** Conclui tecnicamente somente após serviços finalizados e peças efetivamente consumidas. */

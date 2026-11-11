@@ -6,6 +6,7 @@ import com.oficina.dto.DashboardResumoResponse;
 import com.oficina.dto.DashboardStatusResponse;
 import com.oficina.model.StatusOs;
 import java.math.BigDecimal;
+import java.sql.Date;
 import java.sql.Timestamp;
 import java.time.LocalDate;
 import java.util.List;
@@ -14,17 +15,10 @@ import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
 
-/**
- * Consultas agregadas: utiliza o esquema vigente (V10 a V12), sem fazer fetch de
- * entidades JPA ou carregar comprovantes (BYTEA) em memória.
- *
- * Faturamento recebido vem de pagamento_os; contar OS CONCLUIDA como receita
- * seria incorreto após a introdução das etapas de pagamento e encerramento.
- */
+/** Consultas do Dashboard compatíveis com MariaDB 10.11 (XAMPP). */
 @Repository
 @RequiredArgsConstructor
 public class DashboardIndicadoresRepository {
-
     private final NamedParameterJdbcTemplate jdbc;
 
     private static final String SQL_RESUMO = """
@@ -61,10 +55,6 @@ public class DashboardIndicadoresRepository {
                 valor(rs.getBigDecimal("recebido_periodo"))));
     }
 
-    /**
-     * A receita vem dos pagamentos efetivos; demais lançamentos são apenas
-     * custos/despesas registrados. Folha salarial é a fotografia mensal ATUAL.
-     */
     public DashboardFinanceiroResponse financeiro(LocalDate inicio, LocalDate fim) {
         String sql = """
             SELECT
@@ -95,7 +85,6 @@ public class DashboardIndicadoresRepository {
         });
     }
 
-    /** Mostra apenas status com pelo menos uma OS; o gráfico pode omitir zeros. */
     public List<DashboardStatusResponse> porStatus() {
         String sql = "SELECT status, COUNT(*) AS quantidade FROM ordem_servico GROUP BY status ORDER BY status";
         return jdbc.query(sql, new MapSqlParameterSource(), (rs, rowNum) -> {
@@ -105,34 +94,41 @@ public class DashboardIndicadoresRepository {
         });
     }
 
-    /** Períodos vazios aparecem como zero usando generate_series do PostgreSQL. */
+    /** CTE recursiva MariaDB. No máximo 366 linhas por DIA, ou 25 por MÊS. */
     public List<DashboardEvolucaoResponse> evolucao(LocalDate inicio, LocalDate fim, boolean porDia) {
-        // Ambos os valores são literais fixos no código, nunca texto fornecido pelo usuário.
-        String unidade = porDia ? "day" : "month";
+        String unidade = porDia ? "DAY" : "MONTH";
+        LocalDate primeiroPeriodo = porDia ? inicio : inicio.withDayOfMonth(1);
+        LocalDate ultimoPeriodo = porDia ? fim : fim.withDayOfMonth(1);
         String sql = """
-            WITH faixas AS (
-                SELECT CAST(g.periodo AS DATE) AS periodo,
-                       GREATEST(g.periodo, CAST(:inicio AS timestamp)) AS inicio_faixa,
-                       LEAST(g.periodo + INTERVAL '1 %s', CAST(:fimExclusivo AS timestamp)) AS fim_faixa
-                  FROM generate_series(
-                       date_trunc('%s', CAST(:inicio AS timestamp)),
-                       date_trunc('%s', CAST(:fimInclusivo AS timestamp)),
-                       INTERVAL '1 %s') AS g(periodo)
+            WITH RECURSIVE periodos AS (
+                SELECT CAST(:primeiroPeriodo AS DATE) AS periodo
+                UNION ALL
+                SELECT DATE_ADD(periodo, INTERVAL 1 %s)
+                  FROM periodos
+                 WHERE periodo < CAST(:ultimoPeriodo AS DATE)
             )
             SELECT f.periodo,
                 (SELECT COUNT(*) FROM ordem_servico o
-                   WHERE o.data_abertura >= f.inicio_faixa AND o.data_abertura < f.fim_faixa) AS abertas,
+                   WHERE o.data_abertura >= GREATEST(f.periodo,:inicio)
+                     AND o.data_abertura < LEAST(DATE_ADD(f.periodo, INTERVAL 1 %s),:fimExclusivo)) AS abertas,
                 (SELECT COUNT(*) FROM ordem_servico o
-                   WHERE o.data_conclusao >= f.inicio_faixa AND o.data_conclusao < f.fim_faixa) AS concluidas,
+                   WHERE o.data_conclusao >= GREATEST(f.periodo,:inicio)
+                     AND o.data_conclusao < LEAST(DATE_ADD(f.periodo, INTERVAL 1 %s),:fimExclusivo)) AS concluidas,
                 (SELECT COUNT(*) FROM retirada_os r
-                   WHERE r.retirado_em >= f.inicio_faixa AND r.retirado_em < f.fim_faixa) AS retiradas,
+                   WHERE r.retirado_em >= GREATEST(f.periodo,:inicio)
+                     AND r.retirado_em < LEAST(DATE_ADD(f.periodo, INTERVAL 1 %s),:fimExclusivo)) AS retiradas,
                 (SELECT COUNT(*) FROM pagamento_os p
-                   WHERE p.pago_em >= f.inicio_faixa AND p.pago_em < f.fim_faixa) AS pagamentos,
+                   WHERE p.pago_em >= GREATEST(f.periodo,:inicio)
+                     AND p.pago_em < LEAST(DATE_ADD(f.periodo, INTERVAL 1 %s),:fimExclusivo)) AS pagamentos,
                 (SELECT COALESCE(SUM(p.valor),0) FROM pagamento_os p
-                   WHERE p.pago_em >= f.inicio_faixa AND p.pago_em < f.fim_faixa) AS recebido
-            FROM faixas f ORDER BY f.periodo
-            """.formatted(unidade, unidade, unidade, unidade);
-        return jdbc.query(sql, parametros(inicio, fim), (rs, rowNum) -> new DashboardEvolucaoResponse(
+                   WHERE p.pago_em >= GREATEST(f.periodo,:inicio)
+                     AND p.pago_em < LEAST(DATE_ADD(f.periodo, INTERVAL 1 %s),:fimExclusivo)) AS recebido
+            FROM periodos f ORDER BY f.periodo
+            """.formatted(unidade, unidade, unidade, unidade, unidade, unidade);
+        MapSqlParameterSource parametros = parametros(inicio, fim)
+                .addValue("primeiroPeriodo", Date.valueOf(primeiroPeriodo))
+                .addValue("ultimoPeriodo", Date.valueOf(ultimoPeriodo));
+        return jdbc.query(sql, parametros, (rs, rowNum) -> new DashboardEvolucaoResponse(
                 rs.getDate("periodo").toLocalDate(),
                 rs.getLong("abertas"), rs.getLong("concluidas"),
                 rs.getLong("retiradas"), rs.getLong("pagamentos"),

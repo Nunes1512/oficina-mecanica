@@ -53,9 +53,26 @@ class FechamentoOsServiceTest {
     void gerenteLiberaPagamentoSomenteAposConclusaoTecnica() {
         OrdemServico os = os(StatusOs.CONCLUIDA);
         travar(os);
+        when(ordens.temOrcamentoAprovado(49L, DecisaoCliente.APROVADO)).thenReturn(true);
         fechamento.liberarPagamento(49L, ator(Perfis.GERENTE));
         assertEquals(StatusOs.AGUARDANDO_PAGAMENTO, os.getStatus());
         verify(auditoria).registrar(any(), eq("LIBERAR_PAGAMENTO"), eq("ordem_servico"), eq(49L), any());
+    }
+
+    @Test
+    void osConcluidaAntigaSemOrcamentoNaoLiberaPagamento() {
+        OrdemServico os = os(StatusOs.CONCLUIDA);
+        travar(os);
+        assertThrows(NegocioException.class,
+                () -> fechamento.liberarPagamento(49L, ator(Perfis.GERENTE)));
+        verify(pagamentos, never()).save(any());
+    }
+
+    @Test
+    void mecanicoNaoPodeBaixarComprovanteMesmoDaPropriaOs() {
+        assertThrows(AccessDeniedException.class,
+                () -> fechamento.baixarComprovante(49L, ator(Perfis.MECANICO)));
+        verifyNoInteractions(pagamentos);
     }
 
     @Test

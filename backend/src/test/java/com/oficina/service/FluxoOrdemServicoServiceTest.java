@@ -26,8 +26,6 @@ import com.oficina.repository.VeiculoRepository;
 import com.oficina.security.Perfis;
 import com.oficina.security.UsuarioPrincipal;
 import java.math.BigDecimal;
-import java.time.LocalDate;
-import java.time.LocalTime;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
@@ -58,8 +56,7 @@ class FluxoOrdemServicoServiceTest {
     void recepcaoAbreOrdemAguardandoAvaliacao() {
         Veiculo veiculo = new Veiculo();
         veiculo.setId(9L);
-        veiculo.setPrevisaoEntrega(LocalDate.now().plusDays(2).atTime(23, 59));
-        when(veiculos.findById(9L)).thenReturn(Optional.of(veiculo));
+        when(veiculos.bloquearParaAbertura(9L)).thenReturn(Optional.of(veiculo));
         when(ordens.save(any(OrdemServico.class))).thenAnswer(invocacao -> {
             OrdemServico os = invocacao.getArgument(0);
             os.setId(11L);
@@ -69,7 +66,7 @@ class FluxoOrdemServicoServiceTest {
         assertEquals(StatusOs.AGUARDANDO_AVALIACAO, os.getStatus());
         assertEquals(Long.valueOf(9L), os.getVeiculo().getId());
         assertTrue(os.getNumero().startsWith("OS-"));
-        assertEquals(null, veiculo.getPrevisaoEntrega());
+        assertEquals(null, veiculo.getDataEntrega());
         verifyNoInteractions(itens, pecas);
     }
 
@@ -133,48 +130,19 @@ class FluxoOrdemServicoServiceTest {
         when(orcamentos.findById(2L)).thenReturn(Optional.of(orcamento));
         when(orcamentos.findTopByOsIdOrderByVersaoDesc(1L)).thenReturn(Optional.of(orcamento));
         assertThrows(NegocioException.class,
-                () -> fluxo.aprovarGerente(1L, 2L, LocalDate.now().plusDays(2),
-                        ator(1L, Perfis.GERENTE)));
+                () -> fluxo.aprovarGerente(1L, 2L, ator(1L, Perfis.GERENTE)));
     }
-
     @Test
-    void gestorDefinePrevisaoSomenteNaAprovacaoDoOrcamento() {
+    void impedeAberturaSeVeiculoJaTemOsAtiva() {
         Veiculo veiculo = new Veiculo();
         veiculo.setId(9L);
-        OrdemServico os = new OrdemServico();
-        os.setId(1L);
-        os.setVeiculo(veiculo);
-        os.setStatus(StatusOs.AGUARDANDO_APROVACAO_GERENTE);
-        Orcamento orcamento = new Orcamento();
-        orcamento.setId(2L);
-        orcamento.setOs(os);
-        when(ordens.findById(1L)).thenReturn(Optional.of(os));
-        when(orcamentos.findById(2L)).thenReturn(Optional.of(orcamento));
-        when(orcamentos.findTopByOsIdOrderByVersaoDesc(1L)).thenReturn(Optional.of(orcamento));
-        when(itens.findByOrcamentoIdOrderByIdAsc(2L)).thenReturn(List.of());
-
-        LocalDate prazo = LocalDate.now().plusDays(5);
-        fluxo.aprovarGerente(1L, 2L, prazo, ator(1L, Perfis.GERENTE));
-
-        assertEquals(prazo.atTime(LocalTime.of(23, 59)), veiculo.getPrevisaoEntrega());
-        assertEquals(StatusOs.AGUARDANDO_CLIENTE, os.getStatus());
-        assertTrue(orcamento.isAprovadoGerente());
-    }
-
-    @Test
-    void naoPermiteAprovarOrcamentoSemPrevisao() {
-        OrdemServico os = new OrdemServico();
-        os.setId(1L);
-        os.setStatus(StatusOs.AGUARDANDO_APROVACAO_GERENTE);
-        Orcamento orcamento = new Orcamento();
-        orcamento.setId(2L);
-        orcamento.setOs(os);
-        when(ordens.findById(1L)).thenReturn(Optional.of(os));
-        when(orcamentos.findById(2L)).thenReturn(Optional.of(orcamento));
-        when(orcamentos.findTopByOsIdOrderByVersaoDesc(1L)).thenReturn(Optional.of(orcamento));
-
+        when(veiculos.bloquearParaAbertura(9L)).thenReturn(Optional.of(veiculo));
+        when(ordens.existeAtivaParaVeiculo(org.mockito.ArgumentMatchers.eq(9L),
+                org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.eq(StatusOs.CONCLUIDA))).thenReturn(true);
         assertThrows(NegocioException.class,
-                () -> fluxo.aprovarGerente(1L, 2L, null, ator(1L, Perfis.GERENTE)));
+                () -> fluxo.abrir(9L, "Troca de pastilhas", ator(2L, Perfis.ASSISTENTE_ADMINISTRATIVO)));
+        assertEquals(null, veiculo.getDataEntrega());
     }
 
 }

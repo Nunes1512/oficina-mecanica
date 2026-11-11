@@ -11,6 +11,7 @@ import com.oficina.security.Perfis;
 import com.oficina.security.UsuarioPrincipal;
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -187,8 +188,34 @@ class FluxoOrdemServicoExecucaoTest {
         when(itens.findByOrcamentoIdOrderByIdAsc(11L)).thenReturn(List.of(item));
         when(itensOs.findByOsIdOrderById(49L)).thenReturn(List.of(consumido));
 
-        fluxo.registrarUsoPecas(49L, mecanico(7L));
+        fluxo.registrarUsoPecas(49L, Map.of(12L, 0), mecanico(7L));
 
         verify(itensOs, never()).saveAndFlush(any());
     }
+    @Test
+    void consumoParcialBaixaSomenteQuantidadeDeclarada() {
+        OrdemServico os = os(StatusOs.EM_ANDAMENTO);
+        Orcamento orc = aprovado(os);
+        Peca peca = new Peca();
+        peca.setId(12L);
+        peca.setNome("Filtro");
+        peca.setQuantidade(8);
+        ItemOrcamento item = new ItemOrcamento();
+        item.setTipo(TipoItemOrcamento.PECA);
+        item.setOrcamento(orc);
+        item.setPeca(peca);
+        item.setQuantidade(3);
+        item.setValorUnitario(new BigDecimal("20.00"));
+        when(ordens.bloquearParaExecucao(49L)).thenReturn(Optional.of(os));
+        when(orcamentos.findTopByOsIdOrderByVersaoDesc(49L)).thenReturn(Optional.of(orc));
+        when(itens.findByOrcamentoIdOrderByIdAsc(11L)).thenReturn(List.of(item));
+        when(itensOs.findByOsIdOrderById(49L)).thenReturn(List.of());
+        when(pecas.findById(12L)).thenReturn(Optional.of(peca));
+        when(pecas.getReferenceById(12L)).thenReturn(peca);
+        fluxo.registrarUsoPecas(49L, Map.of(12L, 1), mecanico(7L));
+        org.mockito.ArgumentCaptor<ItemOs> argumento = org.mockito.ArgumentCaptor.forClass(ItemOs.class);
+        verify(itensOs).saveAndFlush(argumento.capture());
+        assertEquals(1, argumento.getValue().getQuantidade());
+    }
+
 }

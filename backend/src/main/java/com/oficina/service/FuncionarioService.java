@@ -80,6 +80,27 @@ public class FuncionarioService {
             verificarAdmin(ator);
             usuarioNovo = prepararUsuario(form);
         }
+        // E-mail é também a identidade de login: alteração somente pelo Admin Master.
+        String emailNovo = Textos.limpar(form.getEmail());
+        String emailAntigo = Textos.limpar(funcionario.getEmail());
+        boolean mudouEmail = emailAntigo == null ? emailNovo != null
+                : !emailAntigo.equalsIgnoreCase(emailNovo);
+        boolean mudouStatus = funcionario.getStatus() != form.getStatus();
+        if (funcionario.getUsuario() != null && (mudouEmail || mudouStatus)) {
+            verificarAdmin(ator); // gestor não altera credenciais ou ativo por via indireta
+        }
+        if (funcionario.getUsuario() != null && mudouEmail) {
+            if (emailNovo == null || emailNovo.isBlank() || !emailNovo.matches("^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$"))
+                throw new NegocioException("Informe um e-mail válido para o login.");
+            String loginNovo = emailNovo.toLowerCase(Locale.ROOT);
+            if (usuarios.existsByEmailIgnoreCase(loginNovo))
+                throw new NegocioException("Já existe um usuário com este e-mail de login.");
+            funcionario.getUsuario().setEmail(loginNovo);
+            usuarios.saveAndFlush(funcionario.getUsuario());
+            encerrarSessoes(funcionario.getUsuario().getId());
+            auditoria.registrar(ator, "LOGIN", "usuario", funcionario.getUsuario().getId(),
+                    "E-mail de login atualizado junto ao cadastro funcional");
+        }
         aplicar(funcionario, form, cpf);
         if (usuarioNovo != null) {
             usuarioNovo.setAtivo(funcionario.getStatus() == StatusFuncionario.ATIVO);
@@ -155,7 +176,8 @@ public class FuncionarioService {
         funcionario.setNome(form.getNome().trim());
         funcionario.setCpf(cpf);
         funcionario.setTelefone(Textos.limpar(form.getTelefone()));
-        funcionario.setEmail(Textos.limpar(form.getEmail()));
+        String email = Textos.limpar(form.getEmail());
+        funcionario.setEmail(email == null ? null : email.toLowerCase(Locale.ROOT));
         funcionario.setCargo(Textos.limpar(form.getCargo()));
         funcionario.setStatus(form.getStatus());
     }
